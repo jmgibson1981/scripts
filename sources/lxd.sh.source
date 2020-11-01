@@ -1,0 +1,27 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+# my usual lxd container build options
+
+lxd_container_build() {
+	if [ $(expr "$1" % 2) = 0 ] ; then
+		lxc launch ubuntu:"$1".04 "$2"
+		lxc config set "$1" boot.autostart true
+		lxc config device add "$1" scripts disk path=/scripts source=/scripts
+		lxc config device add "$1" server disk path=/snapraid/pool \
+		source=/snapraid/pool
+		read -r -p "docker required? (y|n) -> " dockeranswer
+		case "$dockeranswer" in
+			y|yes|Yes|YES)
+				lxc config set "$1" security.nesting true
+				;;
+		esac
+		read -r -p "privilege required? (y|n) -> " privilege
+		case "$privilege" in
+			y|yes|Yes|YES)
+				lxc config set "$1" security.privileged true
+				;;
+		esac
+	else
+		echo "not going to help you with a non lts version!"
+	fi
+}
