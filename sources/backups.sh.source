@@ -37,7 +37,7 @@ desktop_home_dir_func() {
 }
 
 sql_backup_func() {
-#	if [ ! -z "$POOLLOC" ] ; then
+	if [ ! -z "$POOLLOC" ] ; then
 		SQLBACKUPS="$POOLLOC"/backups/mysqldump
 		for db in $(mysql -e "show databases;") ; do
 			case "$db" in
@@ -54,8 +54,8 @@ sql_backup_func() {
 					;;
 			esac
 		done
-		find "$SQLBACKUPS"/ -type f -mtime +7 -exec rm {} \;
-#	fi
+		find "$SQLBACKUPS"/ -mindepth 2 -name '*.sql.gz' -mtime +7 -exec rm {} \;
+	fi
 }
 
 # end source #
