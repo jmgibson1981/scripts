@@ -1,0 +1,191 @@
+
+Kodi Headless Solution - Updated for Ubuntu 20.04 Focal Fossa
+
+This guide is intended to fulfill some requests for a headless Kodi. This can be used for a few different things including a central library manager
+where all your sources are defined for the lan, and a headless music player complete with the official App on Android & iOS to control it as well as a
+Web GUI which can be pointed to a remote $PULSE_SERVER.
+
+This guide has been tested working on Ubuntu 18.04 Bionic and Ubuntu 20.04 Focal. This will require a modest level of command line ability.
+
+This should theoretically be running 24/7 on a server. It will work on bare metal, virtual machine, lxc container, or for this guide... lxd containers.
+Your server will need a bridged interface to get your containers on the lan instead of in their own subnet. Example server netplan config with bridge as follows.
+
+$ cat /etc/netplan/01-myif.yaml
+network:
+ version: 2
+ renderer: networkd
+ ethernets:
+  eno1:
+   dhcp4: false
+   dhcp6: false
+ bridges:
+  br0:
+   interfaces: [eno1]
+   dhcp4: false
+   dhcp6: false
+   addresses: [192.168.1.2/24]
+   gateway4: 192.168.1.1
+   nameservers:
+    addresses: [192.168.1.2]
+
+When installing LXD make sure to choose use an existing bridge. I highly recommend the snap version of LXD. 
+This version will be kept up to date as it is the default release method for the software.
+sudo snap install lxd
+
+Create your first lxd container. Your user will need to be in the lxd group to run these commands. $NAME is whatever you wish to call your container.
+lxc launch ubuntu:20.04 "$NAME"
+
+Enter your container and do some configuration. You will need a static ip and an ssh server. You will also need to trick the container into 
+thinking it has a monitor attached. I have routinely started Kodi with an autostart from Openbox. This fulfills their supported method of a window manager.
+lxc exec "$NAME" bash
+
+Create a static ip on the same subnet as your lan. My example containers netplan config.
+# cat /etc/netplan/01-myif.yaml
+network:
+ version: 2
+ renderer: networkd
+ ethernets:
+  eth0:
+   dhcp4: false
+   dhcp6: false
+   addresses: [192.168.1.240/24]
+   gateway4: 192.168.1.1
+   nameservers:
+    addresses: [192.168.1.2]
+
+Add your software.
+ 
+add-apt-repository ppa:team-xbmc/ppa
+apt install -y lightdm kodi kodi-eventclients-kodi-send openbox x11vnc ssh xserver-xorg-video-dummy
+
+
+Tricking the container into thinking it has a monitor is found @ this link. https://askubuntu.com/questions/453109/add-fake-display-when-no-monitor-is-plugged-in
+
+This is where the xserver-xorg-video-dummy package comes into play.
+Quote:
+Write it in the /usr/share/X11/xorg.conf.d/xorg.conf (or possibly /etc/X11/xorg.conf) file (create one, if it does not exist):
+Section "Device"
+    Identifier  "Configured Video Device"
+    Driver      "dummy"
+EndSection
+
+Section "Monitor"
+    Identifier  "Configured Monitor"
+    HorizSync 31.5-48.5
+    VertRefresh 50-70
+EndSection
+
+Section "Screen"
+    Identifier  "Default Screen"
+    Monitor     "Configured Monitor"
+    Device      "Configured Video Device"
+    DefaultDepth 24
+    SubSection "Display"
+    Depth 24
+    Modes "1024x800"
+    EndSubSection
+EndSection
+
+Add a non privileged user for Kodi to run under
+adduser kodi
+
+Enable autologin of the Kodi user on boot
+echo "[Seat:*]
+autologin-session=openbox
+autologin-user=kodi
+autologin-user-timeout=0" | sudo tee -a /usr/share/lightdm/lightdm.conf.d/60-kodilogin.conf
+
+Systemd service file to run vnc server as needed.
+echo "[Unit]
+Description = Start and keep X11VNC server running
+
+[Service]
+User = kodi
+Group = kodi
+Type = simple
+ExecStart = /usr/bin/x11vnc -display :0
+Restart = always
+
+[Install]
+WantedBy = multi-user.target" | sudo tee -a /etc/systemd/system/vncstart.service
+
+Autostart Kodi with Openbox launch and add Kodi folder for user. Run these as the kodi user directly or with su.
+mkdir -p /home/kodi/.config/openbox && echo "kodi &" > /home/kodi/.config/openbox/autostart
+
+Add /home/"$USER"/.kodi folder. Source this from any machine that has all sources definitions on it. The idea is to see the 
+thumbnails, and have to do as little customization as possible as it should all be set up. As Kodi user again.
+rsync -auv --progress remote.example:/home/"$USER"/.kodi ~/
+
+At this point the only thing left is the ssh configuration. Do as needed as everyone's needs are different.
+
+Restart the container and it will come up. You now have VNC access at $IP:5900
+
+-------------------------------------------------
+
+To utilize Kodi as a headless audio server is not difficult. A script, systemd service and minor changes to pulse configuration.
+
+Replace the above systemd service with the following.
+[Unit]
+Description = Reacquire remote pulse audio server when becomes available
+
+[Service]
+User = root
+Group = root
+EnvironmentFile = /etc/environment
+Type = simple
+ExecStart = /usr/local/bin/libserverload
+
+[Install]
+WantedBy = multi-user.target
+
+Create this script in /usr/local/bin/libserverload. Don't forget to make it executable.
+#!/bin/bash
+# tadaen sylvermane | jason gibson
+# scan lan every x seconds to find remote pulse server
+
+LOCKFILE=/tmp/.kodilock
+
+while true ; do
+        IFS=':' read -r type addr port <<< "$PULSE_SERVER"
+        if [[ -e "$LOCKFILE" ]] ; then
+                ping -c 1 "$addr" || rm "$LOCKFILE"
+        else
+                if ping -c 1 "$addr" ; then
+                        touch "$LOCKFILE" && sleep 30
+                        systemctl restart lightdm
+                fi
+        fi
+        pgrep x11vnc || su -c "x11vnc -display :0" kodi &
+        sleep 10
+done
+ 
+chmod 755 /usr/local/bin/libserverload
+
+Enter your remote PULSE_SERVER location in your /etc/environment file
+
+Example as follows.
+PULSE_SERVER="tcp:kodi.main.mylan.home:4713"
+
+I did this on a user basis in /home/"$USER"/.config/pulse/default.pa. If you want systemwide you will need to do 
+Pulse as a system wide service and use /etc/pulse/default.pa
+
+Edit your default.pa file as such on your Kodi container.
+### Network access (may be configured with paprefs, so leave this commented
+### here if you plan to use paprefs)
+#load-module module-esound-protocol-tcp
+load-module module-native-protocol-tcp
+#load-module module-zeroconf-publish
+load-module module-zeroconf-discover
+
+On your remote PULSE_SERVER. default.pa again, systemwide or user as mentioned above. Adjust ACL as needed. This is mine.
+### Network access (may be configured with paprefs, so leave this commented
+### here if you plan to use paprefs)
+#load-module module-esound-protocol-tcp
+#load-module module-native-protocol-tcp
+# https://wiki.archlinux.org/index.php/PulseAudio/Examples#PulseAudio_over_network
+load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1;192.168.1.0/24 auth-anonymous=1
+# https://manurevah.com/blah/en/p/PulseAudio-Sound-over-the-network
+load-module module-zeroconf-publish
+
+That should do it. I hope people who have asked for Headless Kodi for whatever reasons find this useful. I intend to use it for the audio playback.
+The Kore app on Android is too perfect for it.

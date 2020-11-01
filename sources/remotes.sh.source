@@ -1,0 +1,58 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+# media center start stop
+
+set -x
+
+# begin source #
+
+remote_stop_func() {
+	if [ "$USER" = root ] ; then
+		STOPCMD=$(echo "$SCRIPTCALL" | cut -c 7-)
+		if pgrep kodi-x11 ; then
+			kodi-send --action "PlayerControl(stop)"
+			for seconds in 30 20 10 ; do
+				kodi-send --action "Notification(kodi stopping,${STOPCMD} in ${seconds} seconds)"
+				sleep 10
+			done
+			case "$STOPCMD" in
+				poweroff)
+					kodi-send --action PowerDown
+					;;
+				reboot)
+					kodi-send --action Reboot
+					;;
+			esac
+			exit 0
+		fi
+		systemctl "$STOPCMD"
+	else
+		case "$1" in
+			kodi|desktop)
+				TYPE="$1"
+				shift
+				for machine in "$@" ; do
+					TARGET="$TYPE"."$machine".mylan.home
+					ping -c 1 "$TARGET" && ssh -f root@"$TARGET" "$SCRIPTCALL"
+				done
+				;;
+			*)
+				echo "first variable should be type followed by machines"
+				echo "example: ${0} (kodi|desktop) (machines)"
+				exit 0
+				;;
+		esac
+	fi
+}
+
+remote_wake_func() {
+	TYPE="$1"
+	shift
+	for machine in "$@" ; do
+		TARGET=$(grep -A 1 "${TYPE} ${machine}" /etc/dnsmasq.conf | tail -n 1 \
+		| cut -d= -f 2 | cut -d, -f 1)
+		ping -c 1 "$TYPE"."$machine".mylan.home || wakeonlan "$TARGET"
+	done
+}
+
+# end source #

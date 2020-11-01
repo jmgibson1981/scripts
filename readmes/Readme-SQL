@@ -1,0 +1,68 @@
+Personal customizations for MariaDB installation.
+
+/etc/mysql/mariadb.conf.d/99-kodi-optimize.cnf
+
+-
+[mysqld]
+
+optimizer_search_depth = 1
+skip-name-resolve
+innodb_adaptive_hash_index = off
+bind-address            = 0.0.0.0
+sort_buffer_size = 16M
+-
+
+*NEW DATABASES ONLY*
+
+Follow Kodi Wiki to add user to MySQL / MariaDB
+-
+When using MySQL8 or higher (Ubuntu 20.04 or later), add the following line at the end of /etc/mysql/mysql.conf.d/mysqld.cnf:
+default_authentication_plugin=mysql_native_password
+Restart your MySQL server. sudo service mysql restart
+Get into the MySQL command line utility: mysql -u root -p
+Enter the following commands:
+Type in: CREATE USER 'kodi' IDENTIFIED BY 'kodi'; and press return
+Type in: GRANT ALL ON *.* TO 'kodi'; and press return
+Type in: flush privileges; and press return
+Close out the command line tool with \q
+*Restart your MySQL server. sudo service mysql restart* (added this line myself. always had trouble without restarting)
+-
+
+/scripts/mysqlbackups - crontab. once daily as non-privileged user, usually middle of night. requires backup sql user with proper permissions to dump everything.
+
+-
+#!/bin/bash
+# tadaen sylvermane
+# sql backups
+
+# variables #
+
+NOW=$(date +%Y.%m.%d.%H.%M)
+SQLDUMPDIR=/snapraid/pool/backups/mysqldump
+
+# begin script #
+
+if systemctl is-active mysql > /dev/null ; then
+        case "$1" in
+                backup)
+                        mysqldump \
+                        --user=backup
+                        --password=backup \
+                        --single-transaction \
+                        --all-databases \
+                        | gzip > "$SQLDUMPDIR"/mydatabases."$NOW".sql.gz
+                        find "$SQLDUMPDIR"/ -type f -mtime +5 -exec rm {} \;
+                        ;;
+                restore)
+                        if [[ "$USER" == root ]] ; then
+                          zcat $(find "$SQLDUMPDIR"/ -type f | tail -n 1) | mysql
+                        else
+                          echo "run restoration as root!"
+                        fi
+                        ;;
+        esac
+        
+fi
+
+# end script #
+-

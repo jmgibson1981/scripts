@@ -1,0 +1,12 @@
+Ubuntu 18.04 host configuration is as follows. Adjust paths to match if your 
+distro is different.
+
+Default docker volume = minecraftdata
+Default ENVFOLDER = /var/lib/docker/volumes/minecraftdata/_data/ENVFOLDER
+Default systemd service = /etc/systemd/system/
+
+Ramdisk is an option for your worlds. You will need to create the ramdisk and
+have it mount inside of your docker volume. There is a RAMDISK variable in the
+ENVFOLDER/example file.
+
+Default ramdisk mount = /var/lib/docker/volumes/minecraftdata/_data/RAMDISK

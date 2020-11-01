@@ -1,0 +1,22 @@
+[Unit]
+Description = Starts MariaDB Container @ Boot & Stops
+After = docker.service
+Requires = docker.service
+
+[Service]
+User = root
+Group = root
+Type = oneshot
+ExecStartPre = /usr/bin/docker run \
+	-id \
+	--network host \
+	--rm \
+	--mount source=sql,destination=/var/lib/mysql \
+	--name mariadb \
+	mariadb
+ExecStart = /usr/bin/docker exec -i mariadb service mysql start
+ExecStop = /usr/bin/docker stop mariadb
+RemainAfterExit = yes
+
+[Install]
+WantedBy = multi-user.target

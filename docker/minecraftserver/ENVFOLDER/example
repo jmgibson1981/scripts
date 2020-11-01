@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# this file controls world generation and ports used by the container. you
+# create a file named after the world you wish to generate or run. this is the
+# test file I used while building this docker config.
+
+# adventure | creative | spectator | survival #
+GAMETYPE=creative
+# sets the rcon network port #
+RCONPORT=50000
+# main port. this is the one you access to connect to the server #
+MAINPORT=50001
+# peaceful | easy | normal | hard #
+DIFFICULTY=easy
+# number only limited by your hardware #
+PLAYERS=10
+# world name #
+WORLDNAME=example

@@ -1,0 +1,41 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+# download helper for jw.org
+
+set -x
+
+# begin source #
+
+download_jworg_func() {
+	if [ "$2" ] ; then
+		TEMPINPUT="$2".temp
+		cp "$2" "$TEMPINPUT"
+		while IFS='`' read -r dl_link op_name ; do
+			[ "$op_name" ] || break
+			echo "$op_name" | grep -q "#" && continue
+			dl_link_ext=$(basename "$dl_link" | cut -d. -f 2)
+			op_name_edit=$(echo "$op_name" \
+			| sed -e 's/á/a/g' -e 's/[öø]/o/g' -e 's/Á/A/g' -e 's/í/i/g' \
+			-e 's/—/ /g' -e 's/[[:punct:]]//g' -e 's/\b\(.\)/\u\1/g' | tr -s ' ')
+			op_name_full=$(echo "$op_name_edit"."$dl_link_ext" | sed -e 's/ *$//')
+			[ -d "$1" ] || mkdir -p "$1"
+			if [ "$3" = t ] ; then
+				echo "$op_name_full"
+			else
+				wget -O "$1"/"$op_name_full" "$dl_link"
+				sed -i "s/${op_name}/${op_name}#/g" "$2"
+			fi
+			case $(date +%H) in
+				03|04)
+					break
+					;;
+			esac
+		done < "$TEMPINPUT"
+		rm "$TEMPINPUT"
+	else
+		echo "usage ${0} (/target/dir | /input/file)"
+	fi
+}
+
+# end source #
+

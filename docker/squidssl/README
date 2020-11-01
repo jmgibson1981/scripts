@@ -1,0 +1,2 @@
+You should have a volume for /etc/squid. On fresh run ssl certs will be created there.
+Included a diff of a default /etc/init.d/squid and the one in this folder to show the few changes without deep inspection.

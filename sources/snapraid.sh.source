@@ -1,0 +1,30 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+# server snapraid pool management
+
+# begin source #
+
+mergerfs_add_remove_func() {
+	[ "$1" = add ] && D_MOD="+>"
+	[ "$1" = remove ] && D_MOD="-"
+	shift
+	for mountloc in "$@" ; do
+		if [ "$USER" = root ] ; then
+			xattr -w user.mergerfs.srcmounts "${D_MOD}${mountloc}" \
+			"$POOLLOC"/.mergerfs
+		fi
+	done
+}
+
+snapraid_scrub_func() {
+	LOGFILELOC=/var/snapraid/logs
+	[ -d "$LOGFILELOC" ] || mkdir -p "$LOGFILELOC"
+	snapraid scrub -l "$LOGFILELOC"/snapscrub."$NOW".log
+	if ! grep "msg:status Ok" "$LOGFILELOC"snapscrub."$NOW".log ; then
+	        emergency_email_func "$1" snapraid
+	cp "$LOGFILELOC"/snapscrub."$NOW".log /root
+	fi
+	find "$LOGFILELOC"/ -type f -mtime +60 -exec rm {} \;
+}
+
+# end source #

@@ -1,0 +1,46 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+# source for squid ssl docker container init script
+
+# directory to put certificates #
+
+CERTSDIR=/etc/squid/certs
+
+# openssl keygen variables - customize these #
+
+COUNTRY="US"
+STATE="AZ"
+CITY="TUCSON"
+ORGANIZATION="HOME"
+ORGANIZATIONUNIT="HOME"
+COMMONNAME="TADAEN SYLVERMANE"
+EMAIL="JMGIBSON81@GMAIL.COM"
+
+cert_create_func() {
+	if [ ! -d "$CERTSDIR" ] ; then
+		mkdir -p "$CERTSDIR"
+		openssl req \
+			-new \
+			-newkey rsa:2048 \
+			-sha256 \
+			-days 365 \
+			-nodes \
+			-x509 \
+			-extensions v3_ca \
+			-keyout "$CERTSDIR"/squid-key.pem \
+			-out "$CERTSDIR"/squid-cert.pem \
+			-subj "/C=${COUNTRY}/" \
+			-subj "/ST=${STATE}/" \
+			-subj "/L=${CITY}/" \
+			-subj "/O=${ORGANIZATION}/" \
+			-subj "/OU=${ORGANIZATIONUNIT}/" \
+			-subj "/CN=${COMMONNAME}/" \
+			-subj "/emailAddress=${EMAIL}"
+		cat "$CERTSDIR"/squid-cert.pem "$CERTSDIR"/squid-key.pem \
+		> "$CERTSDIR"/squid-ca-cert-key.pem
+		openssl x509 -outform pem -in "$CERTSDIR"/squid-cert.crt \
+		-out "$CERTSDIR"/SQUID-CA-FOR-IMPORT.crt
+		chown -R proxy:proxy "$CERTSDIR"
+		chmod 700 "$CERTSDIR" && chmod 744 "$CERTSDIR"/*.pem
+	fi
+}

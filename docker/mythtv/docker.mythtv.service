@@ -1,0 +1,25 @@
+[Unit]
+Description = Starts MythTV Backend Container @ Boot & Stops
+After = docker.service
+Requires = docker.service
+
+[Service]
+User = root
+Group = root
+Type = oneshot
+ExecStartPre = /usr/bin/docker run \
+	-id \
+	-h mythtv \
+	--network host \
+	--rm \
+	--mount source=mythtv,destination=/var/lib/mythtv \
+	--name mythtv \
+	mythtv
+ExecStart = /usr/bin/docker exec -i mythtv service mythtv-backend start
+ExecStart = /usr/bin/docker exec -i mythtv service ssh start
+ExecStop = /usr/bin/docker stop mythtv
+RemainAfterExit = yes
+
+[Install]
+WantedBy = multi-user.target
+

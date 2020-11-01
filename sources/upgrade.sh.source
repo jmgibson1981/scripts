@@ -1,0 +1,34 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+# system upgrades
+
+# begin source #
+
+apt_listing_check() {
+	apt list --upgradeable | tail -n 1 | grep Listing
+}
+
+system_upgrades_func() {
+	find /srv/ltsp/ -maxdepth 1 -mindepth 1 -type d \
+	| while read -r chroot ; do
+		if [ "$chroot" != /srv/ltsp/images ] ; then
+			chroot "$chroot" apt update
+			if ! chroot "$chroot" apt_listing_check ; then
+				chroot "$chroot" apt "$SCRIPTCALL" -y
+				chroot "$chroot" apt --purge autoremove -y
+				chroot "$chroot" apt clean
+				ltsp image "$(basename "$chroot")"
+			fi
+		fi
+	done
+	ltsp ipxe
+	ltsp initrd
+	apt update
+	if ! apt_listing_check ; then
+		apt "$SCRIPTCALL" -y
+		apt --purge autoremove -y
+		apt clean
+	fi
+}
+
+# end source #

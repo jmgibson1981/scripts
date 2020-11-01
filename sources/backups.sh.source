@@ -1,0 +1,61 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+# various backup functions
+
+# begin source #
+
+desktop_home_dir_func() {
+	if [ ! -z "$POOLLOC" ] ; then
+		TARGET="$POOLLOC"/backups/homebackups
+		if [ "$USER" = root ] ; then
+			HOSTNAME=$(uname -n)
+			for user in /home/* ; do
+				BUSER=$(basename "$user")
+				if [ ! -d "$TARGET"/"$HOSTNAME"/"$BUSER}" ] ; then
+					mkdir -p "$TARGET"/"$HOSTNAME"/"$BUSER" && chown -R "$BUSER":"$BUSER" \
+					"$TARGET"/"$HOSTNAME"/"$BUSER"
+				fi
+				su -c "duplicity \
+				--exclude-if-present .nobackup \
+				--no-encryption \
+				--full-if-older-than 1M \
+				/home/${BUSER} file://${TARGET}/${HOSTNAME}/${BUSER}" "$BUSER"
+				su -c \
+				"duplicity remove-all-but-n-full 4 --force \
+				file://${TARGET}/${HOSTNAME}/${BUSER}" "$BUSER"
+			done
+		else
+			lsblk | head -n 2 | grep ltsp && HOSTNAME=server || HOSTNAME=$(uname -n)
+			RESTFOLDER=/home/"$USER"/Desktop/RESTORE_DELETE_ASAP
+			duplicity \
+			--no-encryption \
+			--progress \
+			file://"$TARGET"/"$HOSTNAME"/"$USER"/ "$RESTFOLDER"
+			touch "$RESTFOLDER"/.nobackup
+		fi
+	fi
+}
+
+sql_backup_func() {
+#	if [ ! -z "$POOLLOC" ] ; then
+		SQLBACKUPS="$POOLLOC"/backups/mysqldump
+		for db in $(mysql -e "show databases;") ; do
+			case "$db" in
+				Database|information_schema|mysql|performance_schema)
+					continue
+					;;
+				*)
+					[ -d "$SQLBACKUPS"/"$db" ] || mkdir -p "$SQLBACKUPS"/"$db"
+					mysqldump \
+					--user=backup \
+					--password=backup \
+					--single-transaction "$db" \
+					| gzip > "$SQLBACKUPS"/"$db"/"$db"."$NOW".sql.gz
+					;;
+			esac
+		done
+		find "$SQLBACKUPS"/ -type f -mtime +7 -exec rm {} \;
+#	fi
+}
+
+# end source #

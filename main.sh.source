@@ -1,0 +1,111 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+# my main source & shared functions
+
+# variables #
+
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/var/lib/snapd/snap/bin:/snap/bin:/var/lib/snapd/snap/bin
+POOLLOC=/snapraid/pool
+NOW=$(date +%Y.%m.%d.%H.%M)
+SCRIPTCALL=$(basename "$0")
+SHSOURCE=/scripts/git/sources
+
+# functions #
+
+emergency_email_func() {
+	EMAILLOC=/tmp/"$(uname -n)"."$2"."$NOW".alert
+	echo "To: ${1}
+From: $(grep from "$HOME"/.msmtprc | cut -d' ' -f 2)
+Subject: $(uname -n) alert!
+
+" > "$EMAILLOC"
+	case "$2" in
+		snapraid)
+			echo "snapraid scrub finished with errors. check manually" >> "$EMAILLOC"
+			;;
+		test)
+			echo "email alert is working fine" >> "$EMAILLOC"
+			;;
+	esac
+	msmtp "$1" < "$EMAILLOC"
+	rm "$EMAILLOC"
+}
+
+bin_link_func() {
+	if [ "$USER" = root ] ; then
+		if [ -d "$1" ] ; then	
+			TARGET="$1"
+			shift
+			for link in "$@" ; do
+				[ -L "$TARGET"/"$link" ] || ln -s "$0" "$TARGET"/"$link"
+			done
+		else
+			echo "${1} does not exist. check again"
+		fi
+	else
+		root_notice
+	fi
+}
+
+root_notice() {
+	echo "this requires root or sudo privileges."
+	exit 0
+}
+
+# sources #
+
+. "$SHSOURCE"/backups.sh.source
+. "$SHSOURCE"/jw.download.sh.source
+. "$SHSOURCE"/minecraft.sh.source
+. "$SHSOURCE"/remotes.sh.source
+. "$SHSOURCE"/snapraid.sh.source
+. "$SHSOURCE"/upgrade.sh.source
+
+# execution #
+
+case "$SCRIPTCALL" in
+	datadisk)
+		mergerfs_add_remove_func "$@"
+		;;
+	snapscrub)
+		snapraid_scrub_func
+		;;
+	remotepoweroff|remotereboot)
+		remote_stop_func "$@"
+		;;
+	remotewake)
+		remote_wake_func "$@"
+		;;
+	sqlbackup|sqlrestore)
+		sql_backup_func "$@"
+		;;
+	mcbackup)
+		mc_backup_exec_func "$@"
+		;;
+	jwdownload)
+		download_jworg_func "$@"
+		;;
+	desktopbackup|desktoprestore)
+		desktop_home_dir_func
+		;;
+	upgrade|full-upgrade)
+		system_upgrades_func
+		;;
+	mcssdlaunch)
+		mc_ssd_launch
+		;;
+	mcserverstart)
+		mc_server_start "$@"
+		;;
+	mcserverglobalstop)
+		mc_systemd_global_stop
+		;;
+	*)
+		bin_link_func "$1" datadisk snapscrub remotepoweroff remotereboot
+		bin_link_func "$1" remotewake sqlbackup sqlrestore mcbackup jwdownload
+		bin_link_func "$1" upgrade full-upgrade
+		bin_link_func "$1" desktoprestore mcssdlaunch desktopbackup
+		;;
+esac
+
+# end script #

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Minecraft Desktop Launcher
+Comment=Official Minecraft Launcher
+Exec=/usr/local/bin/mcssdlaunch
+Icon=minecraft-launcher
+Terminal=false
+Categories=Game;Application;
