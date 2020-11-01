@@ -60,6 +60,7 @@ root_notice() {
 . "$SHSOURCE"/remotes.sh.source
 . "$SHSOURCE"/snapraid.sh.source
 . "$SHSOURCE"/upgrade.sh.source
+. "$SHSOURCE"/lxd.sh.source
 
 # execution #
 
@@ -94,17 +95,15 @@ case "$SCRIPTCALL" in
 	mcssdlaunch)
 		mc_ssd_launch
 		;;
-	mcserverstart)
-		mc_server_start "$@"
-		;;
-	mcserverglobalstop)
-		mc_systemd_global_stop
+	lxdbuilder)
+		lxd_container_build "$@"
 		;;
 	*)
 		bin_link_func "$1" datadisk snapscrub remotepoweroff remotereboot
 		bin_link_func "$1" remotewake sqlbackup sqlrestore mcbackup jwdownload
 		bin_link_func "$1" upgrade full-upgrade
 		bin_link_func "$1" desktoprestore mcssdlaunch desktopbackup
+		bin_link_func "$1" lxdbuilder
 		;;
 esac
 
