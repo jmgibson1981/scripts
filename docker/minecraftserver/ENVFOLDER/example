@@ -16,3 +16,7 @@ DIFFICULTY=easy
 PLAYERS=10
 # world name #
 WORLDNAME=example
+# ramdisk yes | no #
+# default fstab mount for my ramdisk is
+# tmpfs /var/lib/docker/volumes/minecraft/_data/RAMDISK tmpfs rw,nodev,nosuid,size=2G 0 0
+RAMDISK=yes
