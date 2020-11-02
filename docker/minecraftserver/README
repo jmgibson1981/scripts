@@ -10,3 +10,6 @@ have it mount inside of your docker volume. There is a RAMDISK variable in the
 ENVFOLDER/example file.
 
 Default ramdisk mount = /var/lib/docker/volumes/minecraft/_data/RAMDISK
+
+TO DO - Working on a world generation script so one doesn't have to manually
+create the file in the ENVFOLDER.
