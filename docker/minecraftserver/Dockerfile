@@ -1,4 +1,4 @@
-# no frills repository minecraft server #
+# no frills vanilla java minecraft server #
 FROM ubuntu:focal
 LABEL maintainer="Tadaen Sylvermane <jmgibson81@gmail.com>"
 
@@ -12,25 +12,25 @@ LABEL maintainer="Tadaen Sylvermane <jmgibson81@gmail.com>"
 # rsync is also optional. depends on if you want ramdisk capability
 
 RUN apt update && \
-		apt full-upgrade -y && \
-		apt install -y \
-		--no-install-recommends \
-		openjdk-14-jre-headless \
-		screen \
-		wget \
-		rsync \
-		cron && \
-		apt clean && \
-		rm -r /var/lib/apt/lists/*
+	apt full-upgrade -y && \
+	apt install -y \
+	--no-install-recommends \
+	openjdk-14-jre-headless \
+	screen \
+	wget \
+	rsync \
+	cron && \
+	apt clean && \
+	rm -r /var/lib/apt/lists/*
 		
 # get current minecraft server jar file #
 
 RUN wget -O - https://www.minecraft.net/en-us/download/server \
-		> /tmp/mcserver && \
-		grep minecraft_server.[1-9] /tmp/mcserver > /tmp/mcservertype && \
-		while IFS='"' read -r trash1 info trash2 ; do \
-		wget -O /root/server.jar "$info" && break ; done < /tmp/mcservertype && \
-		rm /tmp/mcserver /tmp/mcservertype
+	> /tmp/mcserver && \
+	grep minecraft_server.[1-9] /tmp/mcserver > /tmp/mcservertype && \
+	while IFS='"' read -r trash1 info trash2 ; do \
+	wget -O /root/server.jar "$info" && break ; done < /tmp/mcservertype && \
+	rm /tmp/mcserver /tmp/mcservertype
 
 # insert config files and modify permissions as needed #
 

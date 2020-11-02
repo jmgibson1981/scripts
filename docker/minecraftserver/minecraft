@@ -101,7 +101,7 @@ mc_backup_func() {
 			mc_screen_cmd_func "say backing up"
 			[ -d "$BACKUPDIR" ] || mkdir -p "$BACKUPDIR"
 			tar -czf "$BACKUPDIR"/"$CURRENT"."$NOW".tar.gz "$WORLDS"/"$CURRENT"/*
-			# removes any backups older than 3 days
+			# removes any backups older than n days
 			find "$BACKUPDIR"/ -type f -mtime +5 -exec rm {} \;
 			;;
 	esac
