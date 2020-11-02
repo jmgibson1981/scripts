@@ -20,9 +20,9 @@ snapraid_scrub_func() {
 	LOGFILELOC=/var/snapraid/logs
 	[ -d "$LOGFILELOC" ] || mkdir -p "$LOGFILELOC"
 	snapraid scrub -l "$LOGFILELOC"/snapscrub."$NOW".log
-	if ! grep "msg:status Ok" "$LOGFILELOC"snapscrub."$NOW".log ; then
+	if ! grep "msg:status Ok" "$LOGFILELOC"/snapscrub."$NOW".log ; then
 	        emergency_email_func "$1" snapraid
-	cp "$LOGFILELOC"/snapscrub."$NOW".log /root
+		cp "$LOGFILELOC"/snapscrub."$NOW".log /root
 	fi
 	find "$LOGFILELOC"/ -type f -mtime +60 -exec rm {} \;
 }

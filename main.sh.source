@@ -69,7 +69,7 @@ case "$SCRIPTCALL" in
 		mergerfs_add_remove_func "$@"
 		;;
 	snapscrub)
-		snapraid_scrub_func
+		snapraid_scrub_func "$@"
 		;;
 	remotepoweroff|remotereboot)
 		remote_stop_func "$@"
