@@ -4,17 +4,18 @@
 
 # directory to put certificates #
 
-CERTSDIR=/etc/squid/certs
+CERTSDIR=/home/jason/certs
 
 # openssl keygen variables - customize these #
 
 COUNTRY="US"
 STATE="AZ"
 CITY="TUCSON"
-ORGANIZATION="HOME"
-ORGANIZATIONUNIT="HOME"
-COMMONNAME="TADAEN SYLVERMANE"
+ORGANIZATION="JYG SERVICES"
+ORGANIZATIONUNIT="LAN"
+COMMONNAME="JASON GIBSON"
 EMAIL="JMGIBSON81@GMAIL.COM"
+DAYS="365"
 
 cert_create_func() {
 	if [ ! -d "$CERTSDIR" ] ; then
@@ -23,7 +24,7 @@ cert_create_func() {
 			-new \
 			-newkey rsa:2048 \
 			-sha256 \
-			-days 365 \
+			-days "$DAYS" \
 			-nodes \
 			-x509 \
 			-extensions v3_ca \
@@ -38,9 +39,11 @@ cert_create_func() {
 			-subj "/emailAddress=${EMAIL}"
 		cat "$CERTSDIR"/squid-cert.pem "$CERTSDIR"/squid-key.pem \
 		> "$CERTSDIR"/squid-ca-cert-key.pem
-		openssl x509 -outform pem -in "$CERTSDIR"/squid-cert.crt \
+		openssl x509 -outform pem -in "$CERTSDIR"/squid-cert.pem \
 		-out "$CERTSDIR"/SQUID-CA-FOR-IMPORT.crt
 		chown -R proxy:proxy "$CERTSDIR"
 		chmod 700 "$CERTSDIR" && chmod 744 "$CERTSDIR"/*.pem
 	fi
 }
+
+cert_create_func 
