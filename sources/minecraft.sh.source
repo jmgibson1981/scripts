@@ -65,7 +65,7 @@ mc_backup_exec_func() {
 		[ -e "$RAMDIR"/"$world"/.ramdisk ] && rsync "$RSYNCOPTS" \
 		"$RAMDIR"/"$world" "$WORLDS"/
 		case $(date +%H%M) in
-			2338)
+			0300|1500)
 				tar -czf /"$MCBACKDIR"/"$world"."$NOW".tar.gz "$RAMDIR"/"$world"/*
 			;;
 		esac
@@ -94,15 +94,34 @@ mc_systemd_global_stop() {
 
 # desktop launch with remote sync #
 
+mc_start_stop() {
+	gtk-launch minecraft-launcher
+	until ! ps -u "$USER" | grep minecraft-l ; do
+		sleep 10
+	done
+}
+
+mc_oops() {
+	[ -d "$1"/saves."$NOW" ] || mkdir -p "$1"/saves."$NOW"
+	rsync -au /home/"$USER"/.minecraft/saves/* "$1"/saves."$NOW"
+	find "$1"/ -maxdepth 1 -type d -mtime +2 -exec rm -r {} \;
+	[ -L /home/"$USER"/MC-OOPS ] || ln -s "$1" /home/"$USER"/MC-OOPS
+	
+}
+
 mc_ssd_launch() {
-	MCBACKDIR=/serverhomes/"$USER"
-	if ! ps -u "$USER" | grep minecraft-l ; then
-		rsync -au --delete "$MCBACKDIR"/.minecraft /home/"$USER"/
-		gtk-launch minecraft-launcher
-		until ! ps -u "$USER" | grep minecraft-l ; do
-			sleep 10
-		done
-		rsync -au --delete /home/"$USER"/.minecraft "$MCBACKDIR"/
+	MCBACKDIR="$POOLLOC"/backups/minecraft/"$USER"
+	MCRESTOREDIR="$MCBACKDIR"/oops
+	if [ $(uname -n) = homewrecker ] ; then
+		if ! ps -u "$USER" | grep minecraft-l ; then
+			rsync -au --delete "$MCBACKDIR"/.minecraft /home/"$USER"/
+			mc_start_stop
+			rsync -au --delete /home/"$USER"/.minecraft "$MCBACKDIR"/
+			mc_oops "$MCRESTOREDIR"
+		fi
+	else
+		mc__start_stop
+		mc_oops "$MCRESTOREDIR"
 	fi
 }
 
