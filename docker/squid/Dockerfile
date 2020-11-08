@@ -1,6 +1,6 @@
 # no frills squid docker from repositories #
 # minimum required to be able to run and configure #
-FROM ubuntu:latest
+FROM ubuntu:focal
 LABEL maintainer="Tadaen Sylvermane <jmgibson81@gmail.com>"
 
 # needed for tzdata
