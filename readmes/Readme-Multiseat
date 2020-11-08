@@ -1,0 +1,7 @@
+Personal notes for multi seat configuration.
+
+Screensaver and screen power saving seems to not work. Remove all screensaver / power manager apps. In my case
+I did for my Xubuntu 20.04.
+
+apt --purge autoremove gnome-screensaver xfce4-screensaver xfce4-power-manager
+
