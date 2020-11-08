@@ -25,6 +25,5 @@ RUN apt update && \
 # create configuration files #
 
 COPY 99-kodi-optimize.cnf /etc/mysql/mariadb.conf.d/
-COPY mysql /etc/init.d/mysql
-RUN chmod 755 /etc/init.d/mysql
-
+COPY sqltzdata.source /usr/local/bin/sqltzdata.source
+RUN chmod 755 /usr/local/bin/sqltzdata.source
