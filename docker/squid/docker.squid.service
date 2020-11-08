@@ -1,6 +1,6 @@
 [Unit]
 Description = Starts Squid Container @ Boot & Stops
-After = docker.service
+After = docker.service network.target
 Requires = docker.service
 
 [Service]
@@ -10,9 +10,8 @@ Type = oneshot
 ExecStartPre = /usr/bin/docker run \
 	-id \
 	-h squid \
-	--network host \
+	-p 3129:3129 \
 	--rm \
-	--mount source=squidconf,destination=/etc/squid \
 	--mount source=squiddata,destination=/var/spool/squid \
 	--name squid \
 	squid
