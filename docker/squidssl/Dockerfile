@@ -44,9 +44,8 @@ RUN apt install -y ${BUILDPACKAGES} ${STAYPACKAGES} && \
 	rm -r /var/lib/apt/lists/*
 		
 COPY squid.conf /etc/squid/squid.conf
-COPY squid /etc/init.d/squid
-COPY squidcert.source /root/squidcert.source
-RUN chmod 755 /etc/init.d/squid
+COPY squidcert.source /usr/local/bin/squidcert.source
+RUN chmod 755 /usr/local/bin/squidcert.source
 
 
 

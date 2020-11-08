@@ -1,0 +1,27 @@
+[Unit]
+Description = Starts Squid Container @ Boot & Stops
+After = docker.service network.target
+Requires = docker.service
+
+[Service]
+User = root
+Group = root
+Type = oneshot
+ExecStartPre = /usr/bin/docker run \
+				-id \
+				-h squidssl \
+				-p 3129:3129 \
+				-p 3130:3130 \
+				--rm \
+				--mount source=squidconfssl,destination=/etc/squid/certs \
+				--mount source=squiddatassl,destination=/var/spool/squid \
+				--name squidssl \
+				squidssl
+ExecStart = /usr/bin/docker exec -i squidssl  /usr/local/bin/squidcert.source
+ExecStart = /usr/bin/docker exec -i squidssl service squid start
+ExecStop = /usr/bin/docker stop squidssl
+RemainAfterExit = yes
+
+[Install]
+WantedBy = multi-user.target
+

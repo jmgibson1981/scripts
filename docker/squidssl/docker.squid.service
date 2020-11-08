@@ -8,14 +8,15 @@ User = root
 Group = root
 Type = oneshot
 ExecStartPre = /usr/bin/docker run \
-        -id \
-        -h squid \
-	--network host \
-        --rm \
-        --mount source=squidconf,destination=/etc/squid \
-        --mount source=squiddata,destination=/var/spool/squid \
-        --name squid \
-        squid
+				-id \
+				-h squid \
+				-p 3128:3128 \
+				--rm \
+				--mount source=squidconf,destination=/etc/squid \
+				--mount source=squiddata,destination=/var/spool/squid \
+				--name squid \
+				squid
+ExecStart = /usr/bin/docker exec -i squid  /usr/local/bin/squidcert.source
 ExecStart = /usr/bin/docker exec -i squid service squid start
 ExecStop = /usr/bin/docker stop squid
 RemainAfterExit = yes

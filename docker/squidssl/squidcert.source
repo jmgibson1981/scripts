@@ -2,9 +2,11 @@
 # tadaen sylvermane | jason gibson
 # source for squid ssl docker container init script
 
+# variables #
+
 # directory to put certificates #
 
-CERTSDIR=/home/jason/certs
+CERTSDIR=/etc/squid/certs
 
 # openssl keygen variables - customize these #
 
@@ -17,33 +19,35 @@ COMMONNAME="JASON GIBSON"
 EMAIL="JMGIBSON81@GMAIL.COM"
 DAYS="365"
 
-cert_create_func() {
-	if [ ! -d "$CERTSDIR" ] ; then
-		mkdir -p "$CERTSDIR"
-		openssl req \
-			-new \
-			-newkey rsa:2048 \
-			-sha256 \
-			-days "$DAYS" \
-			-nodes \
-			-x509 \
-			-extensions v3_ca \
-			-keyout "$CERTSDIR"/squid-key.pem \
-			-out "$CERTSDIR"/squid-cert.pem \
-			-subj "/C=${COUNTRY}/" \
-			-subj "/ST=${STATE}/" \
-			-subj "/L=${CITY}/" \
-			-subj "/O=${ORGANIZATION}/" \
-			-subj "/OU=${ORGANIZATIONUNIT}/" \
-			-subj "/CN=${COMMONNAME}/" \
-			-subj "/emailAddress=${EMAIL}"
-		cat "$CERTSDIR"/squid-cert.pem "$CERTSDIR"/squid-key.pem \
-		> "$CERTSDIR"/squid-ca-cert-key.pem
-		openssl x509 -outform pem -in "$CERTSDIR"/squid-cert.pem \
-		-out "$CERTSDIR"/SQUID-CA-FOR-IMPORT.crt
-		chown -R proxy:proxy "$CERTSDIR"
-		chmod 700 "$CERTSDIR" && chmod 744 "$CERTSDIR"/*.pem
-	fi
-}
+# begin script #
 
-cert_create_func 
+if [ ! "$(ls -A ${CERTSDIR})" ] ; then
+	mkdir -p "$CERTSDIR"
+	openssl req \
+		-new \
+		-newkey rsa:2048 \
+		-sha256 \
+		-days "$DAYS" \
+		-nodes \
+		-x509 \
+		-extensions v3_ca \
+		-keyout "$CERTSDIR"/squid-key.pem \
+		-out "$CERTSDIR"/squid-cert.pem \
+		-subj "/C=${COUNTRY}/" \
+		-subj "/ST=${STATE}/" \
+		-subj "/L=${CITY}/" \
+		-subj "/O=${ORGANIZATION}/" \
+		-subj "/OU=${ORGANIZATIONUNIT}/" \
+		-subj "/CN=${COMMONNAME}/" \
+		-subj "/emailAddress=${EMAIL}"
+	cat "$CERTSDIR"/squid-cert.pem "$CERTSDIR"/squid-key.pem \
+	> "$CERTSDIR"/squid-ca-cert-key.pem
+	openssl x509 -outform pem -in "$CERTSDIR"/squid-cert.pem \
+	-out "$CERTSDIR"/SQUID-CA-FOR-IMPORT.crt
+	chown -R proxy:proxy "$CERTSDIR"
+	chmod 700 "$CERTSDIR" && chmod 744 "$CERTSDIR"/*.pem
+	/usr/lib/squid/security_file_certgen -c -s /var/spool/squid/ssl_db -M 20MB
+	chown -R proxy:proxy /var/spool/squid/ssl_db
+fi
+
+# end script #
