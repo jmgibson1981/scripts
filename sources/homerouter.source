@@ -1,0 +1,56 @@
+#!/bin/sh
+
+SQUIDIP=192.168.0.1
+SQUIDPORT=3128
+
+router_setup_func() {
+	for interface in $(find /sys/class/net/ -maxdepth 1) ; do
+		ifname=$(basename "$interface")
+		case "$ifname" in
+			net|lo|veth*)
+				continue
+				;;
+			*)
+				ifip=$(ip addr | grep 'inet ' | grep "$ifname" | awk '{print $2}' \
+				| cut -d\/ -f 1)
+				if [ ! -z "$ifip" ] ; then
+					case "$ifip" in
+						192.168.*.*|172.17.*.*)
+							MODIFIEDIP=$(echo "$ifip" | rev | cut -d"." -f2- | rev).0/24
+							route add -net "$MODIFIEDIP" dev "$ifname"
+							;;
+						*)
+							iptables -t nat -A POSTROUTING -o "$ifname" -j MASQUERADE
+							;;
+					esac
+				fi
+				;;
+		esac
+	done
+}
+
+squid_setup_func() {
+	iptables -N NO_PROXY -t nat
+	iptables -A NO_PROXY -t nat -d 0.0.0.0/24 -j ACCEPT
+	iptables -A NO_PROXY -t nat -d 127.0.0.0/24 -j ACCEPT
+	iptables -A NO_PROXY -t nat -d 172.17.0.0/24 -j ACCEPT
+	iptables -A NO_PROXY -t nat -d 192.168.0.0/24 -j ACCEPT
+	iptables -A NO_PROXY -t nat -j RETURN
+	iptables -A PREROUTING -t nat -p tcp --dport 80 -j NO_PROXY
+	iptables -A PREROUTING -t nat -p tcp --dport 80 -j REDIRECT --to-port 3129
+	iptables -A PREROUTING -t nat -p tcp --dport 443 -j NO_PROXY
+	iptables -A PREROUTING -t nat -p tcp --dport 443 -j REDIRECT --to-ports 3130
+}
+
+case "$1" in
+	routersetup)
+		router_setup_func
+		;;
+	squidsetup)
+		squid_setup_func
+		;;
+	*)
+		echo "usage: ${0} (routersetup|squidsetup)"
+		exit 0
+		;;
+esac
