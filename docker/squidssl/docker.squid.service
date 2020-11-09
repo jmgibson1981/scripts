@@ -1,24 +1,24 @@
 [Unit]
 Description = Starts Squid Container @ Boot & Stops
-After = docker.service
-Requires = docker.service
+After = snapd.service network.target
+Requires = snapd.service
 
 [Service]
 User = root
 Group = root
 Type = oneshot
-ExecStartPre = /usr/bin/docker run \
+ExecStartPre = /snap/bin/docker run \
 				-id \
 				-h squid \
-				-p 3128:3128 \
+				--network host \
 				--rm \
-				--mount source=squidconf,destination=/etc/squid \
-				--mount source=squiddata,destination=/var/spool/squid \
+				--mount source=squidconfssl,destination=/etc/squid/certs \
+				--mount source=squiddatassl,destination=/var/spool/squid \
 				--name squid \
 				squid
-ExecStart = /usr/bin/docker exec -i squid  /usr/local/bin/squidcert.source
-ExecStart = /usr/bin/docker exec -i squid service squid start
-ExecStop = /usr/bin/docker stop squid
+ExecStart = /snap/bin/docker exec -i squid  /usr/local/bin/squidcert.source
+ExecStart = /snap/bin/docker exec -i squid service squid start
+ExecStop = /snap/bin/docker stop squid
 RemainAfterExit = yes
 
 [Install]

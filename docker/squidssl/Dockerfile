@@ -42,8 +42,7 @@ RUN apt install -y ${BUILDPACKAGES} ${STAYPACKAGES} && \
 	apt --purge autoremove -y ${BUILDPACKAGES} && \
 	passwd -d root && \
 	rm -r /var/lib/apt/lists/*
-		
-COPY squid.conf /etc/squid/squid.conf
+
 COPY squidcert.source /usr/local/bin/squidcert.source
 RUN chmod 755 /usr/local/bin/squidcert.source
 
