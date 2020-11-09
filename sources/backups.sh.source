@@ -39,22 +39,25 @@ desktop_home_dir_func() {
 sql_backup_func() {
 	if [ ! -z "$POOLLOC" ] ; then
 		SQLBACKUPS="$POOLLOC"/backups/mysqldump
-		for db in $(mysql -e "show databases;") ; do
+		for db in $(docker exec -it mariadb mysql -e "show databases;" \
+		| awk '{print $2}') ; do
+#		for db in $(mysql -e "show databases;") ; do
 			case "$db" in
 				Database|information_schema|mysql|performance_schema)
 					continue
 					;;
 				*)
 					[ -d "$SQLBACKUPS"/"$db" ] || mkdir -p "$SQLBACKUPS"/"$db"
-					mysqldump \
+#					mysqldump \
+					docker exec -it mariadb mysqldump \
 					--user=backup \
 					--password=backup \
 					--single-transaction "$db" \
 					| gzip > "$SQLBACKUPS"/"$db"/"$db"."$NOW".sql.gz
+					find "$SQLBACKUPS"/"$db"/ -type f -mtime +7 -exec rm {} \;
 					;;
 			esac
 		done
-		find "$SQLBACKUPS"/ -mindepth 2 -name '*.sql.gz' -mtime +7 -exec rm {} \;
 	fi
 }
 
