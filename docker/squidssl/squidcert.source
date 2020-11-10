@@ -1,4 +1,4 @@
-#!/bin/sh
+/us	#!/bin/sh
 # tadaen sylvermane | jason gibson
 # source for squid ssl docker container init script
 
@@ -31,8 +31,8 @@ if [ ! "$(ls -A ${CERTSDIR})" ] ; then
 		-nodes \
 		-x509 \
 		-extensions v3_ca \
-		-keyout "$CERTSDIR"/squid-key.pem \
-		-out "$CERTSDIR"/squid-cert.pem \
+		-keyout "$CERTSDIR"/myCA.pem \
+		-out "$CERTSDIR"/myCA.pem \
 		-subj "/C=${COUNTRY}/" \
 		-subj "/ST=${STATE}/" \
 		-subj "/L=${CITY}/" \
@@ -40,10 +40,8 @@ if [ ! "$(ls -A ${CERTSDIR})" ] ; then
 		-subj "/OU=${ORGANIZATIONUNIT}/" \
 		-subj "/CN=${COMMONNAME}/" \
 		-subj "/emailAddress=${EMAIL}"
-	cat "$CERTSDIR"/squid-cert.pem "$CERTSDIR"/squid-key.pem \
-	> "$CERTSDIR"/squid-ca-cert-key.pem
-	openssl x509 -outform pem -in "$CERTSDIR"/squid-cert.pem \
-	-out "$CERTSDIR"/SQUID-CA-FOR-IMPORT.crt
+	openssl x509 -outform DER -in "$CERTSDIR"/myCA.pem \
+	-out "$CERTSDIR"/SQUID-CA-FOR-IMPORT.der
 	chown -R proxy:proxy "$CERTSDIR"
 	chmod 700 "$CERTSDIR" && chmod 744 "$CERTSDIR"/*.pem
 	/usr/lib/squid/security_file_certgen -c -s /var/spool/squid/ssl_db -M 20MB
