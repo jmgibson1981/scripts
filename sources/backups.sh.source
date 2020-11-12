@@ -39,7 +39,7 @@ desktop_home_dir_func() {
 sql_backup_func() {
 	if [ ! -z "$POOLLOC" ] ; then
 		SQLBACKUPS="$POOLLOC"/backups/mysqldump
-		for db in $(docker exec -it mariadb mysql -e "show databases;" \
+		for db in $(docker exec -t mariadb mysql -e "show databases;" \
 		| awk '{print $2}') ; do
 #		for db in $(mysql -e "show databases;") ; do
 			case "$db" in
@@ -49,7 +49,7 @@ sql_backup_func() {
 				*)
 					[ -d "$SQLBACKUPS"/"$db" ] || mkdir -p "$SQLBACKUPS"/"$db"
 #					mysqldump \
-					docker exec -it mariadb mysqldump \
+				docker exec -t mariadb mysqldump \
 					--user=backup \
 					--password=backup \
 					--single-transaction "$db" \
