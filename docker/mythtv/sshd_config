@@ -6,8 +6,10 @@ Port 22222
 
 PasswordAuthentication yes
 ChallengeResponseAuthentication no
+PermitRootLogin yes
+PasswordAuthentication yes
 X11Forwarding yes
-X11UseLocalhost no
+X11UseLocalhost yes
 PrintMotd no
 AcceptEnv LANG LC_*
 Subsystem	sftp	/usr/lib/openssh/sftp-server

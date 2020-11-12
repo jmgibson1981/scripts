@@ -15,8 +15,8 @@ ExecStartPre = /usr/bin/docker run \
 	--mount source=mythtv,destination=/var/lib/mythtv \
 	--name mythtv \
 	mythtv
-#ExecStart = /usr/bin/docker exec -i mythtv service mythtv-backend start
-#ExecStart = /usr/bin/docker exec -i mythtv service ssh start
+ExecStart = /usr/bin/docker exec -i mythtv service mythtv-backend start
+ExecStart = /usr/bin/docker exec -i mythtv service ssh start
 ExecStop = /usr/bin/docker stop mythtv
 RemainAfterExit = yes
 
