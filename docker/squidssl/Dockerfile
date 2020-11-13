@@ -14,9 +14,8 @@ ENV STAYPACKAGES="openssl apache2 squid-langpack logrotate libdbi-perl ssl-cert"
 
 RUN echo "deb-src http://archive.ubuntu.com/ubuntu focal main" >> \
 	/etc/apt/sources.list && \
-	apt update && \
-	apt full-upgrade -y && \
-	apt install -y curl && \
+	apt update && apt install -y \
+	curl && \
 	ln -s /usr/share/zoneinfo/$(curl https://ipapi.co/timezone) /etc/localtime
 
 # https://elatov.github.io/2019/01/using-squid-to-proxy-ssl-sites/
