@@ -16,14 +16,14 @@ RUN apt install -y --no-install-recommends \
 	sudo \
 	xauth \
 	xvfb \
-	xmltv-util \
 	mythtv-backend && \
-	apt clean && rm -r /var/lib/apt/lists/* && \
-	echo "mythtv ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/mythtv
+	apt clean && \
+	rm -r /var/lib/apt/lists/* && \
+	echo "mythtv ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/mythtv && \
+	apt -y --purge autoremove curl
 		
 # get current minecraft server jar file #
 
 COPY config.xml /etc/mythtv/config.xml
 COPY sshd_config /etc/ssh/sshd_config
-RUN chown mythtv:mythtv /etc/mythtv/config.xml && \
-	echo "mythtv:mythtv" | chpasswd
+RUN chown mythtv:mythtv /etc/mythtv/config.xml && echo "mythtv:mythtv" | chpasswd
