@@ -15,7 +15,8 @@ RUN apt update && apt install -y \
 RUN apt install -y --no-install-recommends \
 	tzdata \
 	mariadb-server && \
-	apt clean && rm -r /var/lib/apt/lists/*
+	apt clean && rm -r /var/lib/apt/lists/* && \
+	apt --purge autoremove -y curl
 
 # create configuration files #
 
