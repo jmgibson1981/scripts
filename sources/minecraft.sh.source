@@ -106,7 +106,6 @@ mc_oops() {
 	cp -r /home/"$USER"/.minecraft/saves/* "$1"/saves."$NOW"
 	find "$1"/ -maxdepth 1 -type d -mtime +2 -exec rm -r {} \;
 	[ -L /home/"$USER"/MC-OOPS ] || ln -s "$1" /home/"$USER"/MC-OOPS
-	
 }
 
 mc_ssd_launch() {

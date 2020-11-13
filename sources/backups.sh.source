@@ -41,20 +41,18 @@ sql_backup_func() {
 		SQLBACKUPS="$POOLLOC"/backups/mysqldump
 		for db in $(docker exec -t mariadb mysql -e "show databases;" \
 		| awk '{print $2}') ; do
-#		for db in $(mysql -e "show databases;") ; do
 			case "$db" in
 				Database|information_schema|mysql|performance_schema)
 					continue
 					;;
 				*)
 					[ -d "$SQLBACKUPS"/"$db" ] || mkdir -p "$SQLBACKUPS"/"$db"
-#					mysqldump \
-				docker exec -t mariadb mysqldump \
-					--user=backup \
-					--password=backup \
-					--single-transaction "$db" \
+					docker exec -t mariadb mysqldump \
+						--user=backup \
+						--password=backup \
+						--single-transaction "$db" \
 					| gzip > "$SQLBACKUPS"/"$db"/"$db"."$NOW".sql.gz
-					find "$SQLBACKUPS"/"$db"/ -type f -mtime +7 -exec rm {} \;
+					find "$SQLBACKUPS"/"$db"/ -type f -mtime +2 -exec rm {} \;
 					;;
 			esac
 		done
