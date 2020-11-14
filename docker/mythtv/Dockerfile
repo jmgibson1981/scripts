@@ -1,29 +1,33 @@
 # no frills repository mythtv backend #
 FROM ubuntu:focal
-LABEL maintainer="Tadaen Sylvermane <jmgibson81@gmail.com>"
 
 # needed for tzdata
 # https://stackoverflow.com/questions/44331836/apt-get-install-tzdata-noninteractive
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install -y \
-	curl && \
-	ln -s /usr/share/zoneinfo/$(curl https://ipapi.co/timezone) /etc/localtime
+        curl && \
+        ln -s /usr/share/zoneinfo/$(curl https://ipapi.co/timezone) /etc/localtime
 
 RUN apt install -y --no-install-recommends \
-	ssh \
-	x11-apps \
-	sudo \
-	xauth \
-	xvfb \
-	mythtv-backend && \
-	apt clean && \
-	rm -r /var/lib/apt/lists/* && \
-	echo "mythtv ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/mythtv && \
-	apt -y --purge autoremove curl
-		
-# get current minecraft server jar file #
+        ssh \
+        x11-apps \
+        sudo \
+        xauth \
+        xvfb \
+        mythtv-backend \
+        libdbi-perl \
+        libmythtv-perl && \
+        apt clean && \
+        rm -r /var/lib/apt/lists/* && \
+        echo "mythtv ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/mythtv && \
+        apt -y --purge autoremove curl
 
 COPY config.xml /etc/mythtv/config.xml
 COPY sshd_config /etc/ssh/sshd_config
-RUN chown mythtv:mythtv /etc/mythtv/config.xml && echo "mythtv:mythtv" | chpasswd
+# https://github.com/MythTV/mythtv/blob/master/mythtv/contrib/maintenance/optimize_mythdb.pl
+# need to download this manually to your docker build folder. probably can be gotten with wget during
+# build process. still tinkering.
+COPY optimize_mythdb.pl /usr/share/doc/mythtv-backend/contrib/maintenance/optimize_mythdb.pl
+RUN chown mythtv:mythtv /etc/mythtv/config.xml && echo "mythtv:mythtv" | chpasswd && \
+       chmod 755 /usr/share/doc/mythtv-backend/contrib/maintenance/optimize_mythdb.pl
