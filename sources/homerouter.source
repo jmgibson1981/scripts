@@ -31,6 +31,7 @@ case "$1" in
 		done
 		;;
 	squidsetup)
+		# https://gist.github.com/maprangzth/453373f3052a0bd7d77b8689ada4dc40
 		iptables -N NO_PROXY -t nat
 		iptables -A NO_PROXY -t nat -d 0.0.0.0/24 -j ACCEPT
 		iptables -A NO_PROXY -t nat -d 127.0.0.0/24 -j ACCEPT
