@@ -57,24 +57,22 @@ interface_iptables_func() {
 }
 
 router_config_func() {
-	if [ ! -f "$ROUTERVARS" ] ; then
-		iptables -A INPUT -s 127.0.0.0/8 -d 127.0.0.0/8 -i lo -j ACCEPT
-		iptables -A INPUT -p icmp -j ACCEPT
-		iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
-		iptables -A INPUT -p udp -m udp --dport 33434:33523 -j REJECT \
-		--reject-with icmp-port-unreachable
-		interface_loop_func interface_iptables_func "$1"
-		lan_if=$(grep lan "$ROUTERVARS" | awk '{print $1}')
-		iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-		iptables -A INPUT -j DROP
-		for lan_if in $(grep lan "$ROUTERVARS" | awk '{print $1}') ; do
-			for wan_if in $(grep wan "$ROUTERVARS" | awk '{print $1}') ; do
-				iptables -A FORWARD -i "$lan_if" -o "$wan_if" -j ACCEPT
-			done
+	iptables -A INPUT -s 127.0.0.0/8 -d 127.0.0.0/8 -i lo -j ACCEPT
+	iptables -A INPUT -p icmp -j ACCEPT
+	iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
+	iptables -A INPUT -p udp -m udp --dport 33434:33523 -j REJECT \
+	--reject-with icmp-port-unreachable
+	interface_loop_func interface_iptables_func "$1"
+	lan_if=$(grep lan "$ROUTERVARS" | awk '{print $1}')
+	iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+	iptables -A INPUT -j DROP
+	for lan_if in $(grep lan "$ROUTERVARS" | awk '{print $1}') ; do
+		for wan_if in $(grep wan "$ROUTERVARS" | awk '{print $1}') ; do
+			iptables -A FORWARD -i "$lan_if" -o "$wan_if" -j ACCEPT
 		done
-		iptables -A FORWARD -j DROP
-		rm "$ROUTERVARS"
-	fi
+	done
+	iptables -A FORWARD -j DROP
+	rm "$ROUTERVARS"
 }
 
 
@@ -93,22 +91,27 @@ squid_config_func() {
 	iptables -A PREROUTING -t nat -p tcp --dport 443 -j REDIRECT --to-ports 3130
 }
 
-if [ ! -z "$1" ] ; then
-	until [ ! -z "$yesno" ] ; do
-		read -r -p "${1} is your selected subnet. correct? -> " yesno
-		case "$yesno" in
-			y|yes|YES|Yes)
-				interface_loop_func interface_start_func "$1"
-				;;
-			*)
-				unset "$yesno"
-				echo "must provide a valid subnet"
-				;;
-		esac
-	done
+if [ ! -f "$ROUTERVARS" ] ; then
+	if [ ! -z "$1" ] ; then
+		until [ ! -z "$yesno" ] ; do
+			read -r -p "${1} is your selected subnet. correct? -> " yesno
+			case "$yesno" in
+				y|yes|YES|Yes)
+					interface_loop_func interface_start_func "$1"
+					;;
+				*)
+					unset "$yesno"
+					echo "must provide a valid subnet"
+					;;
+			esac
+		done
+	else
+		echo "usage: ${0} (subnet)"
+		echo "example: ${0} 192.168.0"
+		exit 0
+	fi
 else
-	echo "usage: ${0} (subnet)"
-	echo "example: ${0} 192.168.0"
+	echo "router already configured"
 	exit 0
 fi
 
