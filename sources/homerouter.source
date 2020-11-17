@@ -17,50 +17,43 @@ interface_loop_func() {
 		ifname=$(basename "$interface")
 		ifip=$(ip addr | grep 'inet ' | grep "$ifname" | awk '{print $2}' \
 		| cut -d\/ -f 1 | head -n 1)
-		"$@"
+		case "$ifname" in
+			net|lo|virbr*|vnet*|veth*|docker*)
+				continue
+				;;
+			*)
+				"$@"
+				;;
+		esac
 	done
 }
 
 interface_start_func() {
-	case "$ifname" in
-		net|lo|virbr*|vnet*|veth*|docker*)
-			continue
-			;;
-		*)
-			if echo "$ifip" | grep -q "$1" ; then
-				router_config_func "$1"
-			else
-				break
-			fi
-			;;
-	esac
+	if echo "$ifip" | grep -q "$1" ; then
+		router_config_func "$1"
+	else
+		break
+	fi
 }
 
 interface_iptables_func() {
-	case "$ifname" in
-		net|lo|veth*)
-			continue
-			;;
-		*)
-			if [ ! -z "$ifip" ] ; then
-				case "$ifip" in
-					"$1".*|172.17.*.*)
-						MODIFIEDIP=$(echo "$ifip" | rev | cut -d"." -f2- | rev).0/24
-						route add -net "$MODIFIEDIP" dev "$ifname"
-						iptables -A INPUT -i "$ifname" -p tcp --dport 53 -j ACCEPT
-						iptables -A INPUT -i "$ifname" -p udp --dport 53 -j ACCEPT
-						iptables -A INPUT -i "$ifname" -p tcp --dport 22 -j ACCEPT
-						iptables -A INPUT -i "$ifname" -p udp --dport 67 -j ACCEPT
-						echo "${ifname} lan" >> "$ROUTERVARS"
-						;;
-					*)
-						iptables -t nat -A POSTROUTING -o "$ifname" -j MASQUERADE
-						echo "${ifname} wan" >> "$ROUTERVARS"
-						;;
-				esac
-			fi
-			;;
-	esac
+	if [ ! -z "$ifip" ] ; then
+		case "$ifip" in
+			"$1".*|172.17.*.*)
+				MODIFIEDIP=$(echo "$ifip" | rev | cut -d"." -f2- | rev).0/24
+				route add -net "$MODIFIEDIP" dev "$ifname"
+				iptables -A INPUT -i "$ifname" -p tcp --dport 53 -j ACCEPT
+				iptables -A INPUT -i "$ifname" -p udp --dport 53 -j ACCEPT
+				iptables -A INPUT -i "$ifname" -p tcp --dport 22 -j ACCEPT
+				iptables -A INPUT -i "$ifname" -p udp --dport 67 -j ACCEPT
+				echo "${ifname} lan" >> "$ROUTERVARS"
+				;;
+			*)
+				iptables -t nat -A POSTROUTING -o "$ifname" -j MASQUERADE
+				echo "${ifname} wan" >> "$ROUTERVARS"
+				;;
+		esac
+	fi
 }
 
 router_config_func() {
