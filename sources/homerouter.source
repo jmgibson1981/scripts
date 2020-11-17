@@ -39,7 +39,7 @@ interface_start_func() {
 interface_iptables_func() {
 	if [ ! -z "$ifip" ] ; then
 		case "$ifip" in
-			"$1".*|172.17.*.*)
+			"$1".*)
 				MODIFIEDIP=$(echo "$ifip" | rev | cut -d"." -f2- | rev).0/24
 				route add -net "$MODIFIEDIP" dev "$ifname"
 				iptables -A INPUT -i "$ifname" -p tcp --dport 53 -j ACCEPT
