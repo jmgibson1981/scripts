@@ -75,10 +75,9 @@ router_config_func() {
 	fi
 }
 
-
-# was working. now failing since making router rules far more complex
-
 squid_config_func() {
+	# still sorting this out. not sure if i need to put it somewhere else.
+	# currently the redirect isn't working and everything times out
 	iptables -N PROXY -t nat
 	iptables -A PROXY -t nat -d 0.0.0.0/24 -j ACCEPT
 	iptables -A PROXY -t nat -d 127.0.0.0/24 -j ACCEPT
