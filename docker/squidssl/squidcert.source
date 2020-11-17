@@ -1,4 +1,4 @@
-/us	#!/bin/sh
+#!/bin/sh
 # tadaen sylvermane | jason gibson
 # source for squid ssl docker container init script
 
@@ -17,7 +17,7 @@ ORGANIZATION="JYG SERVICES"
 ORGANIZATIONUNIT="LAN"
 COMMONNAME="JASON GIBSON"
 EMAIL="JMGIBSON81@GMAIL.COM"
-DAYS="365"
+DAYS="36500"
 
 # begin script #
 
