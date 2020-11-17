@@ -23,7 +23,7 @@ interface_loop_func() {
 
 interface_start_func() {
 	case "$ifname" in
-		lo|virbr*|vnet*|veth*|docker*)
+		net|lo|virbr*|vnet*|veth*|docker*)
 			continue
 			;;
 		*)
