@@ -44,6 +44,8 @@ interface_iptables_func() {
 				iptables -A INPUT -i "$ifname" -p udp --dport 53 -j ACCEPT
 				iptables -A INPUT -i "$ifname" -p tcp --dport 22 -j ACCEPT
 				iptables -A INPUT -i "$ifname" -p udp --dport 67 -j ACCEPT
+				MODIFIEDIP=$(echo "$ifip" | rev | cut -d"." -f2- | rev).0/24
+				route add -net "$MODIFIEDIP" dev "$ifname"
 				echo "${ifname} lan" >> "$ROUTERVARS"
 				;;
 			*)
@@ -56,15 +58,18 @@ interface_iptables_func() {
 
 router_config_func() {
 	if [ ! -f "$ROUTERVARS" ] ; then
+		iptables -A PREROUTING -t nat -p tcp --dport 80 -j REDIRECT --to-port 3129
+		iptables -A PREROUTING -t nat -p tcp --dport 443 -j REDIRECT --to-ports 3130
+		iptables -A INPUT -p tcp --dport 3129 -j ACCEPT
+		iptables -A INPUT -p tcp --dport 3130 -j ACCEPT
 		iptables -A INPUT -s 127.0.0.0/8 -d 127.0.0.0/8 -i lo -j ACCEPT
 		iptables -A INPUT -p icmp -j ACCEPT
 		iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
 		iptables -A INPUT -p udp -m udp --dport 33434:33523 -j REJECT \
 		--reject-with icmp-port-unreachable
 		interface_loop_func interface_iptables_func "$1"
-		lan_if=$(grep lan "$ROUTERVARS" | awk '{print $1}')
-		iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 		iptables -A INPUT -j DROP
+		iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 		for lan_if in $(grep lan "$ROUTERVARS" | awk '{print $1}') ; do
 			for wan_if in $(grep wan "$ROUTERVARS" | awk '{print $1}') ; do
 				iptables -A FORWARD -i "$lan_if" -o "$wan_if" -j ACCEPT
@@ -90,28 +95,60 @@ squid_config_func() {
 	iptables -A PREROUTING -t nat -p tcp --dport 443 -j REDIRECT --to-ports 3130
 }
 
-if [ -f "$ROUTERVARS" ] ; then
-	echo "configuration done"
-	exit 0
-else
-	if [ -z "$1" ] ; then
-		echo "usage: ${0} (subnet)"
-		echo "example: ${0} 192.168.0"
-		exit 0
-	else
-		until [ ! -z "$yesno" ] ; do
-			read -r -p "${1} is your selected subnet. correct? -> " yesno
-			case "$yesno" in
-				y|yes|YES|Yes)
-					interface_loop_func interface_start_func "$1"
+original_script_func() {
+	for interface in $(find /sys/class/net/ -maxdepth 1) ; do
+		ifname=$(basename "$interface")
+		case "$ifname" in
+			net|lo|veth*)
+			continue
+			;;
+			*)
+			ifip=$(ip addr | grep 'inet ' | grep "$ifname" | awk '{print $2}' | cut -d\/ -f 1)
+				if [ ! -z "$ifip" ] ; then
+				case "$ifip" in
+					192.168.*.*|172.17.*.*)
+						MODIFIEDIP=$(echo "$ifip" | rev | cut -d"." -f2- | rev).0/24
+						route add -net "$MODIFIEDIP" dev "$ifname"
+						;;
+					*)
+						iptables -t nat -A POSTROUTING -o "$ifname" -j MASQUERADE
 					;;
-				*)
-					unset "$yesno"
-					echo "must provide a valid subnet"
-					;;
-			esac
-		done
-	fi
-fi
+				esac
+				fi
+				;;
+		esac
+	done
+}
+
+case "$1" in
+	main)
+		if [ -f "$ROUTERVARS" ] ; then
+			echo "configuration done"
+			exit 0
+		else
+			if [ -z "$2" ] ; then
+				echo "usage: ${0} (subnet)"
+				echo "example: ${0} 192.168.0"
+				exit 0
+			else
+				until [ ! -z "$yesno" ] ; do
+					read -r -p "${2} is your selected subnet. correct? -> " yesno
+					case "$yesno" in
+						y|yes|YES|Yes)
+							interface_loop_func interface_start_func "$2"
+							;;
+						*)
+							unset "$yesno"
+							echo "must provide a valid subnet"
+							;;
+					esac
+				done
+			fi
+		fi
+		;;
+	orig)
+		original_script_func
+		;;
+esac
 
 # end script #
