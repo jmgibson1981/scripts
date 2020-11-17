@@ -58,10 +58,12 @@ interface_iptables_func() {
 
 router_config_func() {
 	if [ ! -f "$ROUTERVARS" ] ; then
+		# squid
 		iptables -A PREROUTING -t nat -p tcp --dport 80 -j REDIRECT --to-port 3129
 		iptables -A PREROUTING -t nat -p tcp --dport 443 -j REDIRECT --to-ports 3130
 		iptables -A INPUT -p tcp --dport 3129 -j ACCEPT
 		iptables -A INPUT -p tcp --dport 3130 -j ACCEPT
+		# end squid
 		iptables -A INPUT -s 127.0.0.0/8 -d 127.0.0.0/8 -i lo -j ACCEPT
 		iptables -A INPUT -p icmp -j ACCEPT
 		iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
@@ -80,55 +82,15 @@ router_config_func() {
 	fi
 }
 
-squid_config_func() {
-	# still sorting this out. not sure if i need to put it somewhere else.
-	# currently the redirect isn't working and everything times out
-	iptables -N PROXY -t nat
-	iptables -A PROXY -t nat -d 0.0.0.0/24 -j ACCEPT
-	iptables -A PROXY -t nat -d 127.0.0.0/24 -j ACCEPT
-	iptables -A PROXY -t nat -d 172.17.0.0/24 -j ACCEPT
-	iptables -A PROXY -t nat -d 192.168.0.0/24 -j ACCEPT
-	iptables -A PROXY -t nat -j RETURN
-	iptables -A PREROUTING -t nat -p tcp --dport 80 -j PROXY
-	iptables -A PREROUTING -t nat -p tcp --dport 80 -j REDIRECT --to-port 3129
-	iptables -A PREROUTING -t nat -p tcp --dport 443 -j PROXY
-	iptables -A PREROUTING -t nat -p tcp --dport 443 -j REDIRECT --to-ports 3130
-}
-
-original_script_func() {
-	for interface in $(find /sys/class/net/ -maxdepth 1) ; do
-		ifname=$(basename "$interface")
-		case "$ifname" in
-			net|lo|veth*)
-			continue
-			;;
-			*)
-			ifip=$(ip addr | grep 'inet ' | grep "$ifname" | awk '{print $2}' | cut -d\/ -f 1)
-				if [ ! -z "$ifip" ] ; then
-				case "$ifip" in
-					192.168.*.*|172.17.*.*)
-						MODIFIEDIP=$(echo "$ifip" | rev | cut -d"." -f2- | rev).0/24
-						route add -net "$MODIFIEDIP" dev "$ifname"
-						;;
-					*)
-						iptables -t nat -A POSTROUTING -o "$ifname" -j MASQUERADE
-					;;
-				esac
-				fi
-				;;
-		esac
-	done
-}
-
 case "$1" in
-	main)
+	configure)
 		if [ -f "$ROUTERVARS" ] ; then
 			echo "configuration done"
 			exit 0
 		else
 			if [ -z "$2" ] ; then
-				echo "usage: ${0} (subnet)"
-				echo "example: ${0} 192.168.0"
+				echo "usage: ${0} configure (subnet)"
+				echo "example: ${0} configure 192.168.0"
 				exit 0
 			else
 				until [ ! -z "$yesno" ] ; do
@@ -136,6 +98,8 @@ case "$1" in
 					case "$yesno" in
 						y|yes|YES|Yes)
 							interface_loop_func interface_start_func "$2"
+							echo "once your tests are complete make sure to save the ruleset!"
+							exit 0
 							;;
 						*)
 							unset "$yesno"
@@ -146,9 +110,7 @@ case "$1" in
 			fi
 		fi
 		;;
-	orig)
-		original_script_func
-		;;
 esac
+
 
 # end script #
