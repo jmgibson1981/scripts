@@ -2,33 +2,55 @@
 # tadaen sylvermane | jason gibson
 # simple home router setup
 
+ROUTERVARS=/tmp/routerif.tmp
+
 # begin script #
 
 case "$1" in
 	routersetup)
+		iptables -A INPUT -s 127.0.0.0/8 -d 127.0.0.0/8 -i lo -j ACCEPT
+		iptables -A INPUT -p icmp -j ACCEPT
+		iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
+		iptables -A INPUT -p udp -m udp --dport 33434:33523 -j REJECT --reject-with icmp-port-unreachable
 		for interface in $(find /sys/class/net/ -maxdepth 1) ; do
 			ifname=$(basename "$interface")
+			ifip=$(ip addr | grep 'inet ' | grep "$ifname" | awk '{print $2}' \
+			| cut -d\/ -f 1)
 			case "$ifname" in
 				net|lo|veth*)
 					continue
 					;;
 				*)
-					ifip=$(ip addr | grep 'inet ' | grep "$ifname" | awk '{print $2}' \
-					| cut -d\/ -f 1)
 					if [ ! -z "$ifip" ] ; then
 						case "$ifip" in
-							192.168.*.*|172.17.*.*)
+							192.168.100.*|172.17.*.*)
 								MODIFIEDIP=$(echo "$ifip" | rev | cut -d"." -f2- | rev).0/24
 								route add -net "$MODIFIEDIP" dev "$ifname"
+								iptables -A INPUT -i "$ifname" -p tcp --dport 53 -j ACCEPT
+								iptables -A INPUT -i "$ifname" -p udp --dport 53 -j ACCEPT
+								iptables -A INPUT -i "$ifname" -p tcp --dport 22 -j ACCEPT
+								iptables -A INPUT -i "$ifname" -p udp --dport 67 -j ACCEPT
+								echo "${ifname} lan" >> "$ROUTERVARS"
 								;;
 							*)
 								iptables -t nat -A POSTROUTING -o "$ifname" -j MASQUERADE
+								echo "${ifname} wan" >> "$ROUTERVARS"
 								;;
 						esac
 					fi
 					;;
 			esac
 		done
+		lan_if=$(grep lan "$ROUTERVARS" | awk '{print $1}')
+		iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+		iptables -A INPUT -j DROP
+		for lan_if in $(grep lan "$ROUTERVARS" | awk '{print $1}') ; do
+			for wan_if in $(grep wan "$ROUTERVARS" | awk '{print $1}') ; do
+				iptables -A FORWARD -i "$lan_if" -o "$wan_if" -j ACCEPT
+			done
+		done
+		iptables -A FORWARD -j DROP
+		rm "$ROUTERVARS"
 		;;
 	squidsetup)
 		# https://gist.github.com/maprangzth/453373f3052a0bd7d77b8689ada4dc40
@@ -36,7 +58,7 @@ case "$1" in
 		iptables -A NO_PROXY -t nat -d 0.0.0.0/24 -j ACCEPT
 		iptables -A NO_PROXY -t nat -d 127.0.0.0/24 -j ACCEPT
 		iptables -A NO_PROXY -t nat -d 172.17.0.0/24 -j ACCEPT
-		iptables -A NO_PROXY -t nat -d 192.168.0.0/24 -j ACCEPT
+		iptables -A NO_PROXY -t nat -d 192.168.100.0/24 -j ACCEPT
 		iptables -A NO_PROXY -t nat -j RETURN
 		iptables -A PREROUTING -t nat -p tcp --dport 80 -j NO_PROXY
 		iptables -A PREROUTING -t nat -p tcp --dport 80 -j REDIRECT --to-port 3129
