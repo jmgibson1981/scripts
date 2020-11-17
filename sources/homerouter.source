@@ -63,7 +63,6 @@ router_config_func() {
 	iptables -A INPUT -p udp -m udp --dport 33434:33523 -j REJECT \
 	--reject-with icmp-port-unreachable
 	interface_loop_func interface_iptables_func "$1"
-	lan_if=$(grep lan "$ROUTERVARS" | awk '{print $1}')
 	iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 	iptables -A INPUT -j DROP
 	for lan_if in $(grep lan "$ROUTERVARS" | awk '{print $1}') ; do
