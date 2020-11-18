@@ -44,6 +44,8 @@ interface_iptables_func() {
 				iptables -A INPUT -i "$ifname" -p udp --dport 53 -j ACCEPT
 				iptables -A INPUT -i "$ifname" -p tcp --dport 22 -j ACCEPT
 				iptables -A INPUT -i "$ifname" -p udp --dport 67 -j ACCEPT
+				iptables -A INPUT -i "$ifname" -p tcp --dport 3129 -j ACCEPT
+				iptables -A INPUT -i "$ifname" -p tcp --dport 3130 -j ACCEPT
 				MODIFIEDIP=$(echo "$ifip" | rev | cut -d"." -f2- | rev).0/24
 				route add -net "$MODIFIEDIP" dev "$ifname"
 				echo "${ifname} lan" >> "$ROUTERVARS"
@@ -58,12 +60,10 @@ interface_iptables_func() {
 
 router_config_func() {
 	if [ ! -f "$ROUTERVARS" ] ; then
-		# squid
+		# squid rules - comment if needed
 		iptables -A PREROUTING -t nat -p tcp --dport 80 -j REDIRECT --to-port 3129
-		iptables -A PREROUTING -t nat -p tcp --dport 443 -j REDIRECT --to-ports 3130
-		iptables -A INPUT -p tcp --dport 3129 -j ACCEPT
-		iptables -A INPUT -p tcp --dport 3130 -j ACCEPT
-		# end squid
+		iptables -A PREROUTING -t nat -p tcp --dport 443 -j REDIRECT --to-ports 3130		
+		# end squid prerouting
 		iptables -A INPUT -s 127.0.0.0/8 -d 127.0.0.0/8 -i lo -j ACCEPT
 		iptables -A INPUT -p icmp -j ACCEPT
 		iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
@@ -82,6 +82,37 @@ router_config_func() {
 	fi
 }
 
+ubuntu_debian_package_func() {
+	apt update
+	for package in net-tools iptables-persistent ; do
+		if ! dpkg -l | grep -q "$package" ; then
+			apt install -y "$package"
+		fi
+	done
+	package_success_func
+}
+
+package_success_func() {
+	echo "required packages installed"
+}
+
+distro_specific_func() {
+	case "$(grep '^ID=' /etc/os-release | cut -d = -f 2)" in
+		ubuntu|debian)
+			case "$1" in
+				packages)
+					ubuntu_debian_package_func
+					;;
+				sysctl)
+					sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' \
+					/etc/sysctl.conf
+					sysctl -p
+					;;
+			esac
+			;;
+	esac
+}
+
 case "$1" in
 	configure)
 		if [ -f "$ROUTERVARS" ] ; then
@@ -98,7 +129,9 @@ case "$1" in
 					case "$yesno" in
 						y|yes|YES|Yes)
 							interface_loop_func interface_start_func "$2"
-							echo "once your tests are complete make sure to save the ruleset!"
+							distro_specific_func sysctl
+							[ -d /etc/iptables ] || mkdir -p /etc/iptables
+							iptables-save > /etc/iptables/rules.v4
 							exit 0
 							;;
 						*)
@@ -109,6 +142,9 @@ case "$1" in
 				done
 			fi
 		fi
+		;;
+	packages)
+		distro_specific_func packages
 		;;
 esac
 
