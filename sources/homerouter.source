@@ -46,8 +46,8 @@ interface_iptables_func() {
 				iptables -A INPUT -i "$ifname" -p udp --dport 67 -j ACCEPT
 				iptables -A INPUT -i "$ifname" -p tcp --dport 3129 -j ACCEPT
 				iptables -A INPUT -i "$ifname" -p tcp --dport 3130 -j ACCEPT
-				MODIFIEDIP=$(echo "$ifip" | rev | cut -d"." -f2- | rev).0/24
-				route add -net "$MODIFIEDIP" dev "$ifname"
+#				MODIFIEDIP=$(echo "$ifip" | rev | cut -d"." -f2- | rev).0/24
+#				route add -net "$MODIFIEDIP" dev "$ifname"
 				echo "${ifname} lan" >> "$ROUTERVARS"
 				;;
 			*)
