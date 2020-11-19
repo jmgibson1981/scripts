@@ -3,7 +3,7 @@
 # docker starter
 
 docker_start_func() {
-	until pgrep dockerd ; do
+	until [ -e /var/run/docker.sock ] ; do
 		sleep 2
 	done
 	sleep 2
@@ -20,7 +20,7 @@ docker_start_func() {
 				"$1"
 			docker exec -i "$1"  /usr/local/bin/squidcert.source
 			;;
-		mariadb|mysql)
+		mysql)
 			docker run \
 				-id \
 				-h "$1" \
@@ -34,7 +34,7 @@ docker_start_func() {
 		mythtv-backend)
 			docker run \
 				-id \
-				-h "$1" \
+				-h mythtv \
 				--network host \
 				--rm \
 				--mount source=mythtv,destination=/var/lib/mythtv \
@@ -44,3 +44,5 @@ docker_start_func() {
 	esac
 	docker exec -i "$1" service "$1" start
 }
+
+docker_start_func "$1"
