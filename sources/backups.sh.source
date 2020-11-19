@@ -38,9 +38,9 @@ desktop_home_dir_func() {
 
 sql_backup_func() {
 	if [ ! -z "$POOLLOC" ] ; then
+		SQLBACKUPS="$POOLLOC"/backups/mysqldump
 		case "$SCRIPTCALL" in
 			sqlbackup)
-				SQLBACKUPS="$POOLLOC"/backups/mysqldump
 				for db in $(docker exec -t mariadb mysql -e "show databases;" \
 				| awk '{print $2}') ; do
 					case "$db" in
@@ -60,14 +60,13 @@ sql_backup_func() {
 				done
 				;;
 			sqlrestore)
-				RESTOREDIR="$POOLLOC"/backups/mysqldump
-				for db in $(find "$RESTOREDIR"/ -type d) ; do
+				for db in $(find "$SQLBACKUPS"/ -type d) ; do
 					DBNAME=$(basename "$db")
 					docker exec -i mariadb mysql -e "create database ${DBNAME};"
 					zcat $(find "$db"/ -type f | sort -n | tail -n 1) \
 					| docker exec -i mariadb mysql "$DBNAME"
 				done
-				cat "$RESTOREDIR"/SQLUSERS.SQL | docker exec -i mariadb mysql
+				cat "$SQLBACKUPS"/SQLUSERS.SQL | docker exec -i mariadb mysql
 				;;
 		esac
 	fi
