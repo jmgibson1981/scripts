@@ -54,19 +54,24 @@ sql_backup_func() {
 								--password=backup \
 								--single-transaction "$db" \
 							| gzip > "$SQLBACKUPS"/"$db"/"$db"."$NOW".sql.gz
-							find "$SQLBACKUPS"/"$db"/ -type f -mtime +2 -exec rm {} \;
 							;;
 					esac
 				done
+				[ -d "$SQLBACKUPS"/users ] || mkdir -p "$SQLBACKUPS"/users
+				docker exec -t mariadb mysql -BNe \
+				"select concat('\'',user,'\'@\'',host,'\'') from mysql.user where user \
+				!= 'root'" | while read uh; do 
+					docker exec -t mariadb mysql -BNe "show grants for $uh" | sed 's/$/;/; s/\\\\/\\/g'; \
+				done | gzip > "$SQLBACKUPS"/users/users."$NOW".sql.gz
+				find "$SQLBACKUPS"/ -name '*.sql.gz' -mtime +2 -exec rm {} \;
 				;;
 			sqlrestore)
-				for db in $(find "$SQLBACKUPS"/ -type d) ; do
+				for db in $(find "$SQLBACKUPS"/ -maxdepth 1 -mindepth 1 -type d) ; do
 					DBNAME=$(basename "$db")
 					docker exec -i mariadb mysql -e "create database ${DBNAME};"
-					zcat $(find "$db"/ -type f | sort -n | tail -n 1) \
+					zcat $(find "$db"/ -name '*.sql.gz' | sort -n | tail -n 1) \
 					| docker exec -i mariadb mysql "$DBNAME"
 				done
-				cat "$SQLBACKUPS"/SQLUSERS.SQL | docker exec -i mariadb mysql
 				;;
 		esac
 	fi
