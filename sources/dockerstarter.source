@@ -1,0 +1,46 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+# docker starter
+
+docker_start_func() {
+	until pgrep dockerd ; do
+		sleep 2
+	done
+	sleep 2
+	case "$1" in
+		squid)
+			docker run \
+				-id \
+				-h "$1" \
+				-p 3128:3128 \
+				--rm \
+				--mount source=squidconf,destination=/etc/squid \
+				--mount source=squiddata,destination=/var/spool/squid \
+				--name "$1" \
+				"$1"
+			docker exec -i "$1"  /usr/local/bin/squidcert.source
+			;;
+		mariadb|mysql)
+			docker run \
+				-id \
+				-h "$1" \
+				-p 3306:3306 \
+				--rm \
+				--mount source=sql,destination=/var/lib/mysql \
+				--name "$1" \
+				"$1"
+			docker exec -i "$1" /usr/local/bin/sqltzdata.source
+			;;
+		mythtv-backend)
+			docker run \
+				-id \
+				-h "$1" \
+				--network host \
+				--rm \
+				--mount source=mythtv,destination=/var/lib/mythtv \
+				--name "$1" \
+				"$1"
+			;;
+	esac
+	docker exec -i "$1" service "$1" start
+}
