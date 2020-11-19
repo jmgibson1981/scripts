@@ -38,24 +38,38 @@ desktop_home_dir_func() {
 
 sql_backup_func() {
 	if [ ! -z "$POOLLOC" ] ; then
-		SQLBACKUPS="$POOLLOC"/backups/mysqldump
-		for db in $(docker exec -t mariadb mysql -e "show databases;" \
-		| awk '{print $2}') ; do
-			case "$db" in
-				Database|information_schema|mysql|performance_schema)
-					continue
-					;;
-				*)
-					[ -d "$SQLBACKUPS"/"$db" ] || mkdir -p "$SQLBACKUPS"/"$db"
-					docker exec -t mariadb mysqldump \
-						--user=backup \
-						--password=backup \
-						--single-transaction "$db" \
-					| gzip > "$SQLBACKUPS"/"$db"/"$db"."$NOW".sql.gz
-					find "$SQLBACKUPS"/"$db"/ -type f -mtime +2 -exec rm {} \;
-					;;
-			esac
-		done
+		case "$SCRIPTCALL" in
+			sqlbackup)
+				SQLBACKUPS="$POOLLOC"/backups/mysqldump
+				for db in $(docker exec -t mariadb mysql -e "show databases;" \
+				| awk '{print $2}') ; do
+					case "$db" in
+						Database|information_schema|mysql|performance_schema)
+							continue
+							;;
+						*)
+							[ -d "$SQLBACKUPS"/"$db" ] || mkdir -p "$SQLBACKUPS"/"$db"
+							docker exec -t mariadb mysqldump \
+								--user=backup \
+								--password=backup \
+								--single-transaction "$db" \
+							| gzip > "$SQLBACKUPS"/"$db"/"$db"."$NOW".sql.gz
+							find "$SQLBACKUPS"/"$db"/ -type f -mtime +2 -exec rm {} \;
+							;;
+					esac
+				done
+				;;
+			sqlrestore)
+				RESTOREDIR="$POOLLOC"/backups/mysqldump
+				for db in $(find "$RESTOREDIR"/ -type d) ; do
+					DBNAME=$(basename "$db")
+					docker exec -i mariadb mysql -e "create database ${DBNAME};"
+					zcat $(find "$db"/ -type f | sort -n | tail -n 1) \
+					| docker exec -i mariadb mysql "$DBNAME"
+				done
+				cat "$RESTOREDIR"/SQLUSERS.SQL | docker exec -i mariadb mysql
+				;;
+		esac
 	fi
 }
 
