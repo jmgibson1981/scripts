@@ -28,8 +28,8 @@ RUN apt install -y ${BUILDPACKAGES} ${STAYPACKAGES} && \
 	apt source squid && \
 	cd squid-[0-9].[0-9][0-9] && \
 	sed -i \
-	's/--with-gnutls/--with-gnutls --enable-ssl --with-cppunit-basedir=\/usr \
-	--enable-ssl-crtd --with-openssl/' debian/rules && \
+	's/--with-gnutls/--with-gnutls --enable-ssl-crtd --with-openssl/' \
+	debian/rules && \
 	debuild -us -uc -b && \
 	dpkg -i /root/squid*.deb && \
 	apt install -fy && \
