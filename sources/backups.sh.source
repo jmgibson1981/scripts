@@ -38,10 +38,11 @@ desktop_home_dir_func() {
 
 sql_backup_func() {
 	if [ ! -z "$POOLLOC" ] ; then
+		DCON=$(docker ps | grep 3306 | rev | awk '{print $1}' | rev)
 		SQLBACKUPS="$POOLLOC"/backups/mysqldump
 		case "$SCRIPTCALL" in
 			sqlbackup)
-				for db in $(docker exec -t mariadb mysql -e "show databases;" \
+				for db in $(docker exec -t "$DCON" mysql -e "show databases;" \
 				| awk '{print $2}') ; do
 					case "$db" in
 						Database|information_schema|mysql|performance_schema)
@@ -49,7 +50,7 @@ sql_backup_func() {
 							;;
 						*)
 							[ -d "$SQLBACKUPS"/"$db" ] || mkdir -p "$SQLBACKUPS"/"$db"
-							docker exec -t mariadb mysqldump \
+							docker exec -t "$DCON" mysqldump \
 								--user=backup \
 								--password=backup \
 								--single-transaction "$db" \
@@ -58,19 +59,19 @@ sql_backup_func() {
 					esac
 				done
 				[ -d "$SQLBACKUPS"/users ] || mkdir -p "$SQLBACKUPS"/users
-				docker exec -t mariadb mysql -BNe \
+				docker exec -t "$DCON" mysql -BNe \
 				"select concat('\'',user,'\'@\'',host,'\'') from mysql.user where user \
 				!= 'root'" | while read uh; do 
-					docker exec -t mariadb mysql -BNe "show grants for $uh" | sed 's/$/;/; s/\\\\/\\/g'; \
+					docker exec -t "$DCON" mysql -BNe "show grants for $uh" | sed 's/$/;/; s/\\\\/\\/g'; \
 				done | gzip > "$SQLBACKUPS"/users/users."$NOW".sql.gz
 				find "$SQLBACKUPS"/ -name '*.sql.gz' -mtime +2 -exec rm {} \;
 				;;
 			sqlrestore)
 				for db in $(find "$SQLBACKUPS"/ -maxdepth 1 -mindepth 1 -type d) ; do
 					DBNAME=$(basename "$db")
-					docker exec -i mariadb mysql -e "create database ${DBNAME};"
+					docker exec -i "$DCON" mysql -e "create database ${DBNAME};"
 					zcat $(find "$db"/ -name '*.sql.gz' | sort -n | tail -n 1) \
-					| docker exec -i mariadb mysql "$DBNAME"
+					| docker exec -i "$DCON" mysql "$DBNAME"
 				done
 				;;
 		esac
