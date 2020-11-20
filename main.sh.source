@@ -8,7 +8,12 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/us
 POOLLOC=/snapraid/pool
 NOW=$(date +%Y.%m.%d.%H.%M)
 SCRIPTCALL=$(basename "$0")
-SHSOURCE=/scripts/git/sources
+
+# minecraft server variables #
+
+RAMDIR=/ramdisk
+WORLDS=/home/"$USER"/gameworlds
+RSYNCOPTS=-au
 
 # functions #
 
@@ -52,15 +57,378 @@ root_notice() {
 	exit 0
 }
 
-# sources #
+desktop_home_dir_func() {
+	if [ ! -z "$POOLLOC" ] ; then
+		TARGET="$POOLLOC"/backups/homebackups
+		if [ "$USER" = root ] ; then
+			HOSTNAME=$(uname -n)
+			for user in /home/* ; do
+				BUSER=$(basename "$user")
+				if [ ! -d "$TARGET"/"$HOSTNAME"/"$BUSER}" ] ; then
+					mkdir -p "$TARGET"/"$HOSTNAME"/"$BUSER" && chown -R \
+					"$BUSER":"$BUSER" "$TARGET"/"$HOSTNAME"/"$BUSER"
+				fi
+				su -c "duplicity \
+				--exclude-if-present .nobackup \
+				--no-encryption \
+				--full-if-older-than 1M \
+				/home/${BUSER} file://${TARGET}/${HOSTNAME}/${BUSER}" "$BUSER"
+				su -c \
+				"duplicity remove-all-but-n-full 4 --force \
+				file://${TARGET}/${HOSTNAME}/${BUSER}" "$BUSER"
+			done
+		else
+			lsblk | head -n 2 | grep ltsp && HOSTNAME=server || HOSTNAME=$(uname -n)
+			RESTFOLDER=/home/"$USER"/Desktop/RESTORE_DELETE_ASAP
+			duplicity \
+			--no-encryption \
+			--progress \
+			file://"$TARGET"/"$HOSTNAME"/"$USER"/ "$RESTFOLDER"
+			touch "$RESTFOLDER"/.nobackup
+		fi
+	fi
+}
 
-. "$SHSOURCE"/backups.sh.source
-. "$SHSOURCE"/jw.download.sh.source
-. "$SHSOURCE"/minecraft.sh.source
-. "$SHSOURCE"/remotes.sh.source
-. "$SHSOURCE"/snapraid.sh.source
-. "$SHSOURCE"/upgrade.sh.source
-. "$SHSOURCE"/lxd.sh.source
+sql_backup_func() {
+	if [ ! -z "$POOLLOC" ] ; then
+		DCON=$(docker ps | grep 3306 | rev | awk '{print $1}' | rev)
+		SQLBACKUPS="$POOLLOC"/backups/mysqldump
+		case "$SCRIPTCALL" in
+			sqlbackup)
+				for db in $(docker exec -t "$DCON" mysql -e "show databases;" \
+				| awk '{print $2}') ; do
+					case "$db" in
+						Database|information_schema|mysql|performance_schema)
+							continue
+							;;
+						*)
+							[ -d "$SQLBACKUPS"/"$db" ] || mkdir -p "$SQLBACKUPS"/"$db"
+							docker exec -t "$DCON" mysqldump \
+								--user=backup \
+								--password=backup \
+								--single-transaction "$db" \
+							| gzip > "$SQLBACKUPS"/"$db"/"$db"."$NOW".sql.gz
+							;;
+					esac
+				done
+				[ -d "$SQLBACKUPS"/users ] || mkdir -p "$SQLBACKUPS"/users
+				docker exec -t "$DCON" mysql -BNe \
+				"select concat('\'',user,'\'@\'',host,'\'') from mysql.user where user \
+				!= 'root'" | while read uh ; do 
+					docker exec -t "$DCON" mysql -BNe "show grants for $uh" \
+					| sed 's/$/;/; s/\\\\/\\/g'; \
+				done | gzip > "$SQLBACKUPS"/users/users."$NOW".sql.gz
+				find "$SQLBACKUPS"/ -name '*.sql.gz' -mtime +2 -exec rm {} \;
+				;;
+			sqlrestore)
+				for db in $(find "$SQLBACKUPS"/ -maxdepth 1 -mindepth 1 -type d) ; do
+					DBNAME=$(basename "$db")
+					docker exec -i "$DCON" mysql -e "create database ${DBNAME};"
+					zcat $(find "$db"/ -name '*.sql.gz' | sort -n | tail -n 1) \
+					| docker exec -i "$DCON" mysql "$DBNAME"
+				done
+				;;
+		esac
+	fi
+}
+
+docker_start_func() {
+	until [ -e /var/run/docker.sock ] ; do
+		sleep 2
+	done
+	sleep 2
+	case "$1" in
+		squid)
+			docker run \
+				-id \
+				-h "$1" \
+				-p 3128:3128 \
+				--rm \
+				--mount source=squidconf,destination=/etc/squid \
+				--mount source=squiddata,destination=/var/spool/squid \
+				--name "$1" \
+				"$1"
+			docker exec -i "$1"  /usr/local/bin/squidcert.source
+			;;
+		mysql)
+			docker run \
+				-id \
+				-h "$1" \
+				-p 3306:3306 \
+				--rm \
+				--mount source=sql,destination=/var/lib/mysql \
+				--name "$1" \
+				"$1"
+			docker exec -i "$1" /usr/local/bin/sqltzdata.source
+			;;
+		mythtv-backend)
+			docker run \
+				-id \
+				-h mythtv \
+				--network host \
+				--rm \
+				--mount source=mythtv,destination=/var/lib/mythtv \
+				--name "$1" \
+				"$1"
+			;;
+	esac
+	docker exec -i "$1" service "$1" start
+}
+
+download_jworg_func() {
+	if [ "$2" ] ; then
+		TEMPINPUT="$2".temp
+		cp "$2" "$TEMPINPUT"
+		while IFS='`' read -r dl_link op_name ; do
+			[ "$op_name" ] || break
+			echo "$op_name" | grep -q "#" && continue
+			dl_link_ext=$(basename "$dl_link" | cut -d. -f 2)
+			op_name_edit=$(echo "$op_name" \
+			| sed -e 's/á/a/g' -e 's/[öø]/o/g' -e 's/Á/A/g' -e 's/í/i/g' \
+			-e 's/—/ /g' -e 's/[[:punct:]]//g' -e 's/\b\(.\)/\u\1/g' | tr -s ' ')
+			op_name_full=$(echo "$op_name_edit"."$dl_link_ext" | sed -e 's/ *$//')
+			[ -d "$1" ] || mkdir -p "$1"
+			if [ "$3" = t ] ; then
+				echo "$op_name_full"
+			else
+				wget -O "$1"/"$op_name_full" "$dl_link"
+				sed -i "s/${op_name}/${op_name}#/g" "$2"
+			fi
+			case $(date +%H) in
+				03|04)
+					break
+					;;
+			esac
+		done < "$TEMPINPUT"
+		rm "$TEMPINPUT"
+	else
+		echo "usage ${0} (/target/dir | /input/file)"
+	fi
+}
+
+lxd_container_build() {
+	if [ $(expr "$1" % 2) = 0 ] ; then
+		lxc launch ubuntu:"$1".04 "$2"
+		lxc config set "$1" boot.autostart true
+		lxc config device add "$1" scripts disk path=/scripts source=/scripts
+		lxc config device add "$1" server disk path=/snapraid/pool \
+		source=/snapraid/pool
+		read -r -p "docker required? (y|n) -> " dockeranswer
+		case "$dockeranswer" in
+			y|yes|Yes|YES)
+				lxc config set "$1" security.nesting true
+				;;
+		esac
+		read -r -p "privilege required? (y|n) -> " privilege
+		case "$privilege" in
+			y|yes|Yes|YES)
+				lxc config set "$1" security.privileged true
+				;;
+		esac
+	else
+		echo "not going to help you with a non lts version!"
+	fi
+}
+
+mc_start_cmd() {
+	screen -dmS "$1" java -jar /home/"$USER"/server.jar nogui
+}
+
+mc_server_start() {
+	for world in "$@" ; do
+		if [ -f "$WORLDS"/"$world"/.ramdisk ] ; then
+			rsync -au "$WORLDS"/"$world" "$RAMDIR"
+			cd "$RAMDIR"/"$world" && mc_start_cmd "$world"
+		else
+			cd "$WORLDS"/"$world" && mc_start_cmd "$world"
+		fi
+	done
+}
+
+mc_screen_cmd_func() {
+	screen -p 0 -S "$1" -X eval "stuff \"${2}\"\015"
+}
+
+mc_log_cleanup_func() {
+	find "$1"/"$2"/logs/ -name '*.log.gz' -exec rm {} \;
+}
+
+mc_backup_exec_func() {
+	MCBACKDIR=/snapraid/pool/backups/minecraft
+	[ "$1" = stop ] && WORLDSTATUS="$1"
+	shift
+	for world in "$@" ; do
+		if [ -e "$RAMDIR"/"$world"/.ramdisk ] ; then
+			mc_log_cleanup_func "$RAMDIR" "$world"
+		else
+			mc_log_cleanup_func "$WORLDS" "$world"
+		fi
+		mc_screen_cmd_func "$world" "save-off"
+		mc_screen_cmd_func "$world" "save-all"
+		sync
+		sleep 10
+		[ -e "$RAMDIR"/"$world"/.ramdisk ] && rsync "$RSYNCOPTS" \
+		"$RAMDIR"/"$world" "$WORLDS"/
+		case $(date +%H%M) in
+			0300|1500)
+				tar -czf /"$MCBACKDIR"/"$world"."$NOW".tar.gz "$RAMDIR"/"$world"/*
+			;;
+		esac
+		if [ "$WORLDSTATUS" = stop ] ; then
+			mc_screen_cmd_func "$world" "say world saved"
+			sleep 5
+			for seconds in 15 10 5 ; do
+				mc_screen_cmd_func "$world" "say stopping in ${seconds}"
+				sleep 5
+			done
+			mc_screen_cmd_func "$world" "stop"
+			[ -e "$RAMDIR"/"$world"/.ramdisk ] && rm -r "$RAMDIR"/"$world"
+		else
+			mc_screen_cmd_func "$world" "save-on"
+		fi
+		find "$MCBACKDIR"/ -type f -mtime +3 -exec rm {} \;
+	done
+}
+
+mc_systemd_global_stop() {
+	for world in $(screen -ls | grep Detached | awk '{print $1}' \
+	| cut -d . -f 2) ; do
+		mc_backup_exec_func stop "$world"
+	done
+}
+
+mc_start_stop() {
+	gtk-launch minecraft-launcher
+	until ! ps -u "$USER" | grep minecraft-l ; do
+		sleep 10
+	done
+}
+
+mc_oops() {
+	[ -d "$1"/saves."$NOW" ] || mkdir -p "$1"/saves."$NOW"
+	cp -r /home/"$USER"/.minecraft/saves/* "$1"/saves."$NOW"
+	find "$1"/ -maxdepth 1 -type d -mtime +2 -exec rm -r {} \;
+	[ -L /home/"$USER"/MC-OOPS ] || ln -s "$1" /home/"$USER"/MC-OOPS
+}
+
+mc_ssd_launch() {
+	MCBACKDIR="$POOLLOC"/backups/minecraft/"$USER"
+	MCRESTOREDIR="$MCBACKDIR"/oops
+	MCLOCALDIR=/data/"$USER"
+	if [ $(uname -n) = homewrecker ] ; then
+		if ! ps -u "$USER" | grep minecraft-l ; then
+			rsync -au --delete "$MCBACKDIR"/.minecraft "$MCLOCALDIR"
+			[ -L /home/"$USER"/.minecraft ] || ln -s "$MCLOCALDIR"/.minecraft \
+			/home/"$USER"/
+			mc_start_stop
+			rsync -au --delete "$MCLOCALDIR"/.minecraft "$MCBACKDIR"/
+			mc_oops "$MCRESTOREDIR"
+		fi
+	else
+		mc_start_stop
+		mc_oops "$MCRESTOREDIR"
+	fi
+}
+
+remote_stop_func() {
+	if [ "$USER" = root ] ; then
+		STOPCMD=$(echo "$SCRIPTCALL" | cut -c 7-)
+		if pgrep kodi-x11 ; then
+			kodi-send --action "PlayerControl(stop)"
+			for seconds in 30 20 10 ; do
+				kodi-send --action "Notification(kodi stopping,${STOPCMD} in ${seconds} seconds)"
+				sleep 10
+			done
+			case "$STOPCMD" in
+				poweroff)
+					kodi-send --action PowerDown
+					;;
+				reboot)
+					kodi-send --action Reboot
+					;;
+			esac
+			exit 0
+		fi
+		systemctl "$STOPCMD"
+	else
+		case "$1" in
+			kodi|desktop)
+				TYPE="$1"
+				shift
+				for machine in "$@" ; do
+					TARGET="$TYPE"."$machine".mylan.home
+					ping -c 1 "$TARGET" && ssh -f root@"$TARGET" "$SCRIPTCALL"
+				done
+				;;
+			*)
+				echo "first variable should be type followed by machines"
+				echo "example: ${0} (kodi|desktop) (machines)"
+				exit 0
+				;;
+		esac
+	fi
+}
+
+remote_wake_func() {
+	TYPE="$1"
+	shift
+	for machine in "$@" ; do
+		TARGET=$(grep -A 1 "${TYPE} ${machine}" /etc/dnsmasq.conf | tail -n 1 \
+		| cut -d= -f 2 | cut -d, -f 1)
+		ping -c 1 "$TYPE"."$machine".mylan.home || wakeonlan "$TARGET"
+	done
+}
+
+mergerfs_add_remove_func() {
+	[ "$1" = add ] && D_MOD="+>"
+	[ "$1" = remove ] && D_MOD="-"
+	shift
+	for mountloc in "$@" ; do
+		if [ "$USER" = root ] ; then
+			xattr -w user.mergerfs.srcmounts "${D_MOD}${mountloc}" \
+			"$POOLLOC"/.mergerfs
+		fi
+	done
+}
+
+snapraid_scrub_func() {
+	LOGFILELOC=/var/snapraid/logs
+	[ -d "$LOGFILELOC" ] || mkdir -p "$LOGFILELOC"
+	snapraid scrub -l "$LOGFILELOC"/snapscrub."$NOW".log
+	if ! grep "msg:status Ok" "$LOGFILELOC"/snapscrub."$NOW".log ; then
+		emergency_email_func "$1" snapraid
+		cp "$LOGFILELOC"/snapscrub."$NOW".log /root
+	fi
+	find "$LOGFILELOC"/ -type f -mtime +60 -exec rm {} \;
+}
+
+
+
+system_upgrades_func() {
+	apt_listing_check() {
+		apt list --upgradeable | tail -n 1 | grep Listing
+	}
+	find /srv/ltsp/ -maxdepth 1 -mindepth 1 -type d \
+	| while read -r chroot ; do
+		if [ "$chroot" != /srv/ltsp/images ] ; then
+			chroot "$chroot" apt update
+			if ! chroot "$chroot" apt_listing_check ; then
+				chroot "$chroot" apt "$SCRIPTCALL" -y
+				chroot "$chroot" apt --purge autoremove -y
+				chroot "$chroot" apt clean
+				ltsp image "$(basename "$chroot")"
+			fi
+		fi
+	done
+	ltsp ipxe
+	ltsp initrd
+	apt update
+	if ! apt_listing_check ; then
+		apt "$SCRIPTCALL" -y
+		apt --purge autoremove -y
+		apt clean
+	fi
+}
 
 # execution #
 
