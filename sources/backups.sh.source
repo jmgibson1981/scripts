@@ -12,8 +12,8 @@ desktop_home_dir_func() {
 			for user in /home/* ; do
 				BUSER=$(basename "$user")
 				if [ ! -d "$TARGET"/"$HOSTNAME"/"$BUSER}" ] ; then
-					mkdir -p "$TARGET"/"$HOSTNAME"/"$BUSER" && chown -R "$BUSER":"$BUSER" \
-					"$TARGET"/"$HOSTNAME"/"$BUSER"
+					mkdir -p "$TARGET"/"$HOSTNAME"/"$BUSER" && chown -R \
+					"$BUSER":"$BUSER" "$TARGET"/"$HOSTNAME"/"$BUSER"
 				fi
 				su -c "duplicity \
 				--exclude-if-present .nobackup \
@@ -61,8 +61,9 @@ sql_backup_func() {
 				[ -d "$SQLBACKUPS"/users ] || mkdir -p "$SQLBACKUPS"/users
 				docker exec -t "$DCON" mysql -BNe \
 				"select concat('\'',user,'\'@\'',host,'\'') from mysql.user where user \
-				!= 'root'" | while read uh; do 
-					docker exec -t "$DCON" mysql -BNe "show grants for $uh" | sed 's/$/;/; s/\\\\/\\/g'; \
+				!= 'root'" | while read uh ; do 
+					docker exec -t "$DCON" mysql -BNe "show grants for $uh" \
+					| sed 's/$/;/; s/\\\\/\\/g'; \
 				done | gzip > "$SQLBACKUPS"/users/users."$NOW".sql.gz
 				find "$SQLBACKUPS"/ -name '*.sql.gz' -mtime +2 -exec rm {} \;
 				;;
