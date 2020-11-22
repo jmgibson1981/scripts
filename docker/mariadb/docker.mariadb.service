@@ -16,8 +16,8 @@ ExecStart = /snap/bin/docker run \
 	--mount source=sql,destination=/var/lib/mysql \
 	--name mariadb \
 	mariadb
+ExecStart = /snap/bin/docker exec -i mariadb service mysql start
 ExecStart = /snap/bin/docker exec -i mariadb /usr/local/bin/sqltzdata.source
-ExecStart = /snap/bin/docker exec -i mariadb service squid start
 ExecStop = /snap/bin/docker stop mariadb
 RemainAfterExit = yes
 
