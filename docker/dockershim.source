@@ -1,0 +1,12 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+# snapd docker shim
+
+# begin script #
+
+until [ -e /var/run/docker.sock ] ; do
+	sleep 2
+done
+sleep 2
+
+# end script #
