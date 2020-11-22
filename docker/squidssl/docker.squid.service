@@ -1,0 +1,26 @@
+[Unit]
+Description = Starts MariaDB Container @ Boot & Stops
+After = snapd.service snap.docker.dockerd.service
+Requires = snap.docker.dockerd.service
+
+[Service]
+User = root
+Group = root
+Type = oneshot
+ExecStartPre = /usr/local/bin/dockershim.source
+ExecStart = /snap/bin/docker run \
+	-id \
+	-h squid \
+	-p 3128:3128 \
+	--rm \
+	--mount source=squiddata,destination=/var/spool/squid \
+	--mount source=squidconf,destination=/etc/squid \
+	--name squid \
+	squid
+ExecStart = /snap/bin/docker exec -i squid /usr/local/bin/squidcert.source
+ExecStart = /snap/bin/docker exec -i squid service squid start
+ExecStop = /snap/bin/docker stop squid
+RemainAfterExit = yes
+
+[Install]
+WantedBy = multi-user.target

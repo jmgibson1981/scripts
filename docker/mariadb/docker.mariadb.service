@@ -1,13 +1,14 @@
 [Unit]
-Description = Starts MariaDB Container @ Boot & Stops
-After = docker.service
-Requires = docker.service
+Description = Starts Mariadb Container @ Boot & Stops
+After = snapd.service snap.docker.dockerd.service
+Requires = snap.docker.dockerd.service
 
 [Service]
 User = root
 Group = root
 Type = oneshot
-ExecStartPre = /usr/bin/docker run \
+ExecStartPre = /usr/local/bin/dockershim.source
+ExecStart = /snap/bin/docker run \
 	-id \
 	-h mariadb \
 	-p 3306:3306 \
@@ -15,9 +16,9 @@ ExecStartPre = /usr/bin/docker run \
 	--mount source=sql,destination=/var/lib/mysql \
 	--name mariadb \
 	mariadb
-ExecStart = /usr/bin/docker exec -i mariadb /usr/local/bin/sqltzdata.source
-ExecStart = /usr/bin/docker exec -i mariadb service mysql start
-ExecStop = /usr/bin/docker stop mariadb
+ExecStart = /snap/bin/docker exec -i mariadb /usr/local/bin/sqltzdata.source
+ExecStart = /snap/bin/docker exec -i mariadb service squid start
+ExecStop = /snap/bin/docker stop mariadb
 RemainAfterExit = yes
 
 [Install]

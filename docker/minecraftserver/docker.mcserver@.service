@@ -1,7 +1,7 @@
 [Unit]
 Description = Starts Minecraft Server Container @ Boot & Stops
-After = docker.service
-Requires = docker.service
+After = snapd.service snap.docker.dockerd.service
+Requires = snap.docker.dockerd.service
 
 [Service]
 User = root
@@ -11,7 +11,8 @@ Type = oneshot
 # get the ports below to open on container start. this file must exist. if you
 # only intend to run a single world at a given time then adjust accordingly.
 EnvironmentFile = /var/lib/docker/volumes/minecraft/_data/ENVFOLDER/%i
-ExecStartPre = /usr/bin/docker run \
+ExecStartPre = /usr/local/bin/dockershim.source
+ExecStart = /snap/bin/docker run \
 	-id \
 	-h %i \
 	-p ${MAINPORT}:25565 \
@@ -19,10 +20,10 @@ ExecStartPre = /usr/bin/docker run \
 	--mount source=minecraft,destination=/var/lib/minecraft \
 	--name %i \
 	mcserver
-ExecStart = /usr/bin/docker exec -i %i service minecraft start
-ExecStart = /usr/bin/docker exec -i %i service cron start
-ExecStop = /usr/bin/docker exec -i %i service minecraft stop
-ExecStop = /usr/bin/docker stop %i
+ExecStart = /snap/bin/docker exec -i %i service minecraft start
+ExecStart = /snap/bin/docker exec -i %i service cron start
+ExecStop = /snap/bin/docker exec -i %i service minecraft stop
+ExecStop = /snap/bin/docker stop %i
 RemainAfterExit = yes
 
 [Install]
