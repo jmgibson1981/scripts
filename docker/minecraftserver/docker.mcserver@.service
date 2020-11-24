@@ -10,7 +10,7 @@ Type = oneshot
 # this pulls a file from the docker volume for the minecraft contiainer to
 # get the ports below to open on container start. this file must exist. if you
 # only intend to run a single world at a given time then adjust accordingly.
-EnvironmentFile = /var/lib/docker/volumes/minecraft/_data/ENVFOLDER/%i
+EnvironmentFile = /var/snap/docker/common/var-lib-docker/volumes/minecraft/_data/ENVFOLDER/%i
 ExecStartPre = /usr/local/bin/dockershim.source
 ExecStart = /snap/bin/docker run \
 	-id \
