@@ -18,6 +18,7 @@ ExecStart = /snap/bin/docker run \
 	mythtv
 ExecStart = /snap/bin/docker exec -i mythtv service mythtv-backend start
 ExecStart = /snap/bin/docker exec -i mythtv service ssh start
+ExecStart = /snap/bin/docker exec -i mythtv service cron start
 ExecStop = /snap/bin/docker stop mythtv
 RemainAfterExit = yes
 

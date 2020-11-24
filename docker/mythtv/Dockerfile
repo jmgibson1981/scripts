@@ -17,6 +17,7 @@ RUN apt install -y --no-install-recommends \
         xvfb \
         mythtv-backend \
         libdbi-perl \
+	cron \
         libmythtv-perl && \
         apt clean && \
         rm -r /var/lib/apt/lists/* && \
@@ -25,9 +26,13 @@ RUN apt install -y --no-install-recommends \
 
 COPY config.xml /etc/mythtv/config.xml
 COPY sshd_config /etc/ssh/sshd_config
+COPY rootcrontab /var/spool/cron/crontabs/root
 # https://github.com/MythTV/mythtv/blob/master/mythtv/contrib/maintenance/optimize_mythdb.pl
 # need to download this manually to your docker build folder. probably can be gotten with wget during
 # build process. still tinkering.
 COPY optimize_mythdb.pl /usr/share/doc/mythtv-backend/contrib/maintenance/optimize_mythdb.pl
 RUN chown mythtv:mythtv /etc/mythtv/config.xml && echo "mythtv:mythtv" | chpasswd && \
-       chmod 755 /usr/share/doc/mythtv-backend/contrib/maintenance/optimize_mythdb.pl
+	chmod 755 /usr/share/doc/mythtv-backend/contrib/maintenance/optimize_mythdb.pl && \
+	chmod 600 /var/spool/cron/crontabs/root && chown root:crontab /var/spool/cron/crontabs/root
+
+
