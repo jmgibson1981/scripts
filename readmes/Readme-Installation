@@ -1,0 +1,4 @@
+If I copy /etc/[passwd|shadow|group] to the new chroot installation build I
+need to manually create /var/lib/lightdm & chown lightdm:lightdm that folder.
+Assuming this may apply to any other display manager. As I always use Xubuntu
+that is all I've hit thus far.
