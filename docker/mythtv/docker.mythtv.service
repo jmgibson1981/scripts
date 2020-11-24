@@ -1,6 +1,6 @@
 [Unit]
 Description = Starts MythTV Backend Container @ Boot & Stops
-After = snapd.service snap.docker.dockerd.service
+After = snapd.service snap.docker.dockerd.service docker.mariadb.service
 Requires = snap.docker.dockerd.service
 
 [Service]
