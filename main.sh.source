@@ -65,20 +65,20 @@ desktop_home_dir_func() {
 			for user in /home/* ; do
 				BUSER=$(basename "$user")
 				if [ ! -d "$TARGET"/"$HOSTNAME"/"$BUSER}" ] ; then
-					mkdir -p "$TARGET"/"$HOSTNAME"/"$BUSER" && chown -R \
-					"$BUSER":"$BUSER" "$TARGET"/"$HOSTNAME"/"$BUSER"
+					mkdir -p "$TARGET"/"$HOSTNAME"/"$BUSER"
+					chown -R "$BUSER":"$BUSER" "$TARGET"/"$HOSTNAME"/"$BUSER"
 				fi
 				su -c "duplicity \
 				--exclude-if-present .nobackup \
 				--no-encryption \
 				--full-if-older-than 1M \
-				/home/${BUSER} file://${TARGET}/${HOSTNAME}/${BUSER}" "$BUSER"
+				${user} file://${TARGET}/${HOSTNAME}/${BUSER}" "$BUSER"
 				su -c \
 				"duplicity remove-all-but-n-full 4 --force \
 				file://${TARGET}/${HOSTNAME}/${BUSER}" "$BUSER"
 			done
 		else
-			lsblk | head -n 2 | grep ltsp && HOSTNAME=server || HOSTNAME=$(uname -n)
+			lsblk | head -n 2 | grep ltsp && HOSTNAME=megalith || HOSTNAME=$(uname -n)
 			RESTFOLDER=/home/"$USER"/Desktop/RESTORE_DELETE_ASAP
 			duplicity \
 			--no-encryption \
