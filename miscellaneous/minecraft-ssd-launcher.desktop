@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Version=1.0
-Name=Minecraft Desktop Launcher
+Name=Minecraft Sync Launcher
 Comment=Official Minecraft Launcher
 Exec=/usr/local/bin/mcssdlaunch
 Icon=minecraft-launcher
