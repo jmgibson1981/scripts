@@ -1,0 +1,16 @@
+# stripped sshd_config for mythtv backend #
+
+Include /etc/ssh/sshd_config.d/*.conf
+
+Port 22222
+
+PasswordAuthentication yes
+ChallengeResponseAuthentication no
+PermitRootLogin yes
+PasswordAuthentication yes
+X11Forwarding yes
+X11UseLocalhost yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem	sftp	/usr/lib/openssh/sftp-server
+

@@ -1,0 +1,8 @@
+[mysqld]
+
+port = 33066
+optimizer_search_depth = 1
+skip-name-resolve
+innodb_adaptive_hash_index = off
+sort_buffer_size = 16M
+datadir = /var/lib/mythtv/sql

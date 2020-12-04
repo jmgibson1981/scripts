@@ -1,0 +1,24 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+
+FOLDERLOC=/var/lib/mythtv/sql
+
+# begin script #
+
+if [ ! -e "$FOLDERLOC"/.tzdatalockDNR ] ; then
+	case "$1" in
+		pre)
+			mkdir -p "$FOLDERLOC"
+			chown -R mysql:mysql "$FOLDERLOC"
+			;;
+		post)
+			sleep 5 && mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql mysql
+			# mythdb initial create
+			cat /usr/local/bin/mythdbcreate | mysql
+			# create lock file to prevent script run again
+			touch "$FOLDERLOC"/.tzdatalockDNR
+			;;
+	esac
+fi
+
+# end script #
