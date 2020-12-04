@@ -9,6 +9,8 @@ RUN apt update && apt install -y \
 	curl && \
 	ln -s /usr/share/zoneinfo/$(curl https://ipapi.co/timezone) /etc/localtime
 
+# rsyslog and nano are for debugging
+
 RUN apt install -y --no-install-recommends \
 	rsyslog \
 	nano \
@@ -22,7 +24,8 @@ RUN apt install -y --no-install-recommends \
 	cron \
 	tzdata \
 	mariadb-server \
-	libmythtv-perl && \
+	libmythtv-perl \
+	xmltv-util&& \
 	apt clean && \
 	rm -r /var/lib/apt/lists/* && \
 	echo "mythtv ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/mythtv && \
@@ -36,12 +39,12 @@ COPY rootcrontab /var/spool/cron/crontabs/root
 # build process. still tinkering.
 COPY optimize_mythdb.pl /usr/share/doc/mythtv-backend/contrib/maintenance/
 COPY 99-mythtv.cnf /etc/mysql/mariadb.conf.d/
-COPY envsetup.source /usr/local/bin/
+COPY start.source /usr/local/bin/
 COPY mythdbcreate /usr/local/bin/
 RUN chown mythtv:mythtv /etc/mythtv/config.xml && echo "mythtv:mythtv" | chpasswd && \
 	chmod 755 /usr/share/doc/mythtv-backend/contrib/maintenance/optimize_mythdb.pl && \
 	chmod 600 /var/spool/cron/crontabs/root && \
 	chown root:crontab /var/spool/cron/crontabs/root && \
-	chmod 755 /usr/local/bin/envsetup.source
+	chmod 755 /usr/local/bin/start.source
 
 

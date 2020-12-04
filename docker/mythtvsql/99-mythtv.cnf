@@ -1,6 +1,6 @@
 [mysqld]
 
-port = 33066
+port = 3306
 optimizer_search_depth = 1
 skip-name-resolve
 innodb_adaptive_hash_index = off

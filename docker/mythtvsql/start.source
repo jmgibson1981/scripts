@@ -1,0 +1,33 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+
+# variables #
+
+FOLDERLOC=/var/lib/mythtv/sql
+
+# functions #
+
+if [ ! -e "$FOLDERLOC"/.tzdatalockDNR ] ; then
+	sed -i "s/Port 22/Port ${1}/" /etc/ssh/sshd_config
+	mkdir -p "$FOLDERLOC"
+	chown -R mysql:mysql "$FOLDERLOC"
+	mysql_install_db --user=mysql --ldata="$FOLDERLOC"/ --basedir=/usr
+	sed -i "s/3306/${2}/" /etc/mysql/mariadb.conf.d/99-mythtv.cnf
+	sed -i "s/3306${2}/" /etc/mythtv/config.xml
+	service mysql start
+	sleep 5 && mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql mysql
+	cat /usr/local/bin/mythdbcreate | mysql
+	# these work but upon entering the gui the values are unchanged
+	sed -i "s/default_data=\"6543\"/default_data=\"${3}\"/g" /usr/share/mythtv/backend-config/config_backend_general.xml
+	sed -i "s/value=\"BackendStatusPort\" default_data=\"6544\"/value=\"BackendStatusPort\" default_data=\"${4}\"/" /usr/share/mythtv/backend-config/config_backend_general.xml
+	sed -i "s/value=\"SecurityPin\" default_data=\"\"/value=\"SecurityPin\" default_data=\"0000\"/" /usr/share/mythtv/backend-config/config_backend_general.xml
+	service mysql stop
+	touch "$FOLDERLOC"/.tzdatalockDNR
+fi
+
+service mysql start
+service mythtv-backend start
+service ssh start
+service cron start
+
+# end script #

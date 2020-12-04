@@ -2,7 +2,7 @@
 
 Include /etc/ssh/sshd_config.d/*.conf
 
-Port 22222
+Port 22
 
 PasswordAuthentication yes
 ChallengeResponseAuthentication no

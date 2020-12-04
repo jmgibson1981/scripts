@@ -1,0 +1,27 @@
+[Unit]
+Description = Starts MythTV Backend Container @ Boot & Stops
+After = snapd.service snap.docker.dockerd.service
+Requires = snap.docker.dockerd.service
+
+[Service]
+User = root
+Group = root
+Type = oneshot
+EnvironmentFile = /etc/mythtv/%i
+ExecStartPre = /usr/local/bin/dockershim.source
+ExecStart = /snap/bin/docker run \
+	-id \
+	-h mythtv \
+	--network host \
+	--rm \
+	--mount source=mythtv%i,destination=/var/lib/mythtv \
+	--name mythtv%i \
+	mythtv
+ExecStart = /snap/bin/docker exec -i mythtv%i service rsyslog start
+ExecStart = /snap/bin/docker exec -i mythtv%i /usr/local/bin/start.source ${SSHPORT} ${SQLPORT} ${MAINPORT} ${STATUSPORT}
+ExecStop = /snap/bin/docker stop mythtv%i
+RemainAfterExit = yes
+
+[Install]
+WantedBy = multi-user.target
+
