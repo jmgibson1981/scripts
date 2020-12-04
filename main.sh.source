@@ -184,16 +184,14 @@ download_jworg_func() {
 			echo "$op_name" | grep -q "#" && continue
 			dl_link_ext=$(basename "$dl_link" | cut -d. -f 2)
 			op_name_edit=$(echo "$op_name" \
-			| sed -e 's/á/a/g' -e 's/[öø]/o/g' -e 's/Á/A/g' -e 's/í/i/g' \
-			-e 's/—/ /g' -e 's/[[:punct:]]//g' -e 's/\b\(.\)/\u\1/g' | tr -s ' ')
+			| sed -e 's/á/a/g' -e 's/[öóø]/o/g' -e 's/Á/A/g' -e 's/í/i/g' \
+			-e 's/—/ /g' -e 's/[[:punct:]]//g' -e 's/\b\(.\)/\u\1/g' \
+			-e 's/é/e/g' -e 's/ú/u/g' -e 's/ñ/n/g' | tr -s ' ')
 			op_name_full=$(echo "$op_name_edit"."$dl_link_ext" | sed -e 's/ *$//')
 			[ -d "$1" ] || mkdir -p "$1"
-			if [ "$3" = t ] ; then
-				echo "$op_name_full"
-			else
-				wget -O "$1"/"$op_name_full" "$dl_link"
-				sed -i "s/${op_name}/${op_name}#/g" "$2"
-			fi
+			[ "$3" = t ] && echo "$op_name_full" && continue
+			wget -O "$1"/"$op_name_full" "$dl_link"
+			sed -i "s/${op_name}/${op_name}#/g" "$2"
 			case $(date +%H) in
 				03|04)
 					break
@@ -312,6 +310,7 @@ mc_oops() {
 }
 
 mc_ssd_launch() {
+	set -x
 	MCBACKDIR="$POOLLOC"/backups/minecraft/"$USER"
 	MCRESTOREDIR="$MCBACKDIR"/oops
 	MCLOCALDIR=/data/"$USER"
