@@ -10,6 +10,7 @@ if [ ! -e "$FOLDERLOC"/.tzdatalockDNR ] ; then
 		pre)
 			mkdir -p "$FOLDERLOC"
 			chown -R mysql:mysql "$FOLDERLOC"
+			mysql_install_db --user=mysql --ldata="$FOLDERLOC"/ --basedir=/usr
 			;;
 		post)
 			sleep 5 && mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql mysql
