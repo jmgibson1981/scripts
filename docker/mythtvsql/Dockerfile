@@ -12,8 +12,6 @@ RUN apt update && apt install -y \
 # rsyslog and nano are for debugging
 
 RUN apt install -y --no-install-recommends \
-	rsyslog \
-	nano \
 	ssh \
 	x11-apps \
 	sudo \

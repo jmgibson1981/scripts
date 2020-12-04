@@ -7,18 +7,18 @@ Requires = snap.docker.dockerd.service
 User = root
 Group = root
 Type = oneshot
-EnvironmentFile = /etc/mythtv/%i
+EnvironmentFile = /var/snap/docker/common/var-lib-docker/volumes/mythtvenv/_data/mythtv%i
 ExecStartPre = /usr/local/bin/dockershim.source
 ExecStart = /snap/bin/docker run \
 	-id \
-	-h mythtv \
+	-h mythtv%i \
 	--network host \
 	--rm \
 	--mount source=mythtv%i,destination=/var/lib/mythtv \
+	--mount source=mythtvenv,destination=/var/lib/mythtvenv \
 	--name mythtv%i \
 	mythtv
-ExecStart = /snap/bin/docker exec -i mythtv%i service rsyslog start
-ExecStart = /snap/bin/docker exec -i mythtv%i /usr/local/bin/start.source ${SSHPORT} ${SQLPORT} ${MAINPORT} ${STATUSPORT}
+ExecStart = /snap/bin/docker exec -i mythtv%i /usr/local/bin/start.source ${SSHPORT} ${SQLPORT} ${BackendServerPort} ${BackendStatusPort}
 ExecStop = /snap/bin/docker stop mythtv%i
 RemainAfterExit = yes
 
