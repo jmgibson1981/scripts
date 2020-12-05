@@ -9,8 +9,6 @@ RUN apt update && apt install -y \
 	curl && \
 	ln -s /usr/share/zoneinfo/$(curl https://ipapi.co/timezone) /etc/localtime
 
-# rsyslog and nano are for debugging
-
 RUN apt install -y --no-install-recommends \
 	ssh \
 	x11-apps \
@@ -23,7 +21,7 @@ RUN apt install -y --no-install-recommends \
 	tzdata \
 	mariadb-server \
 	libmythtv-perl \
-	xmltv-util&& \
+	xmltv-util && \
 	apt clean && \
 	rm -r /var/lib/apt/lists/* && \
 	echo "mythtv ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/mythtv && \
