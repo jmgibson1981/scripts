@@ -11,6 +11,7 @@ Type = oneshot
 # get the ports below to open on container start. this file must exist. if you
 # only intend to run a single world at a given time then adjust accordingly.
 EnvironmentFile = /var/snap/docker/common/var-lib-docker/volumes/minecraft/_data/ENVFOLDER/%i
+# this is a shim script found in my docker git folder. there is probably a better way to do this? need for snapd
 ExecStartPre = /usr/local/bin/dockershim.source
 ExecStart = /snap/bin/docker run \
 	-id \

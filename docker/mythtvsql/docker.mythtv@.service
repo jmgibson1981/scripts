@@ -8,6 +8,7 @@ User = root
 Group = root
 Type = oneshot
 EnvironmentFile = /var/snap/docker/common/var-lib-docker/volumes/mythtvenv/_data/mythtv%i
+# this is a shim script found in my docker git folder. there is probably a better way to do this? need for snapd
 ExecStartPre = /usr/local/bin/dockershim.source
 ExecStart = /snap/bin/docker run \
 	-id \
