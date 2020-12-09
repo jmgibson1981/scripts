@@ -1,4 +1,4 @@
-# no frills repository mythtv backend #
+# self contained mythtv-backend #
 FROM ubuntu:focal
 
 # needed for tzdata
