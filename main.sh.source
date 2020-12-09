@@ -313,7 +313,7 @@ mc_ssd_launch() {
 	set -x
 	MCBACKDIR="$POOLLOC"/backups/minecraft/"$USER"
 	MCRESTOREDIR="$MCBACKDIR"/oops
-	MCLOCALDIR=/data/"$USER"
+	MCLOCALDIR=/home/"$USER"
 	if [ $(uname -n) = homewrecker ] ; then
 		if ! ps -u "$USER" | grep minecraft-l ; then
 			rsync -au --delete "$MCBACKDIR"/.minecraft "$MCLOCALDIR"
