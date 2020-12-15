@@ -25,8 +25,12 @@ RUN apt update && apt install -y --no-install-recommends \
 	rm -r /var/lib/apt/lists/* && \
 	apt -y --purge autoremove curl
 
+
 COPY start.source /entrypoint.sh
-RUN chmod 755 /entrypoint.sh
+RUN wget -O /root/optimize_mythdb.pl \
+	https://raw.githubusercontent.com/MythTV/mythtv/master/mythtv/contrib/maintenance/optimize_mythdb.pl && \
+	chmod 755 /root/optimize_mythdb.pl && \
+	chmod 755 /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 

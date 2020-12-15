@@ -5,8 +5,6 @@
 
 STORAGEFOLDER=/var/lib/mythtv
 CRONTAB=/var/spool/cron/crontabs/root
-OPTSCRIPTLOC=https://raw.githubusercontent.com/MythTV/mythtv/master/mythtv/contrib/maintenance
-OPTSCRIPTNAME=optimize_mythdb.pl
 
 # functions #
 
@@ -70,8 +68,6 @@ mythtv_config_func() {
 	chown mythtv:mythtv "$STORAGEFOLDER"
 	echo "mythtv ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/mythtv
 	echo "mythtv:mythtv" | chpasswd
-	wget -O /root/"$OPTSCRIPTNAME" "$OPTSCRIPTLOC"/"$OPTSCRIPTNAME"
-	chmod 755 /root/"$OPTSCRIPTNAME"
 }
 
 ssh_config_func() {
@@ -89,7 +85,7 @@ Subsystem	sftp	/usr/lib/openssh/sftp-server" > /etc/ssh/sshd_config
 }
 
 crontab_config_func() {
-	echo "00 02 * * 7	/root/${OPTSCRIPTNAME}" > "$CRONTAB"
+	echo "00 02 * * 7	/root/optimize_mythdb.pl" > "$CRONTAB"
 	chown root:crontab "$CRONTAB"
 	chmod 600 "$CRONTAB"
 }
