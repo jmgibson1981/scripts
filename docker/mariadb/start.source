@@ -1,0 +1,25 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+
+# begin script #
+
+# create my configuration #
+
+echo "[mysqld]
+port = 51000
+optimizer_search_depth = 1
+skip-name-resolve
+innodb_adaptive_hash_index = off
+bind-address            = 0.0.0.0
+sort_buffer_size = 16M" > /etc/mysql/mariadb.conf.d/99-optimize.cnf
+
+# set tzdata if needed - this is needed for the mythtv backend, possibly other things#
+
+if [ ! -e /var/lib/mysql/.tzdatalockDNR ] ; then
+	service mysql start && mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql mysql
+	touch /var/lib/mysql/.tzdatalockDNR && service mysql stop
+fi
+
+exec "$@"
+
+# end script #

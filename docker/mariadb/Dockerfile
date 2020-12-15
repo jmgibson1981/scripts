@@ -10,16 +10,18 @@ RUN apt update && apt install -y \
 	curl && \
 	ln -s /usr/share/zoneinfo/$(curl https://ipapi.co/timezone) /etc/localtime
 
+COPY start.source /start.source
+
 # install & cleanup #
 
 RUN apt install -y --no-install-recommends \
 	tzdata \
 	mariadb-server && \
-	apt clean && rm -r /var/lib/apt/lists/* && \
+	rm -r /var/lib/apt/lists/* && \
 	apt --purge autoremove -y curl
 
-# create configuration files #
+EXPOSE 3306
 
-COPY 99-kodi-optimize.cnf /etc/mysql/mariadb.conf.d/
-COPY sqltzdata.source /usr/local/bin/sqltzdata.source
-RUN chmod 755 /usr/local/bin/sqltzdata.source
+ENTRYPOINT ["/start.source"]
+
+CMD ["mysqld"]
