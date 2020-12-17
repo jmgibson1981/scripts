@@ -1,0 +1,14 @@
+Initial configuration is done on first run.
+
+docker run -id --restart always --name kodiheadless -h kodiheadless --mount source=kodiheadless,destination=/root -p 58080:8080 -p 58081:5900 kodiheadless
+
+Ports are Kore and VNC server respectively. Adjust as needed.
+
+Mounted directory configuration files.
+
+Edit the pulseserver file to enter your specific remote pulse server location.
+Edit startup.sh as needed. I leave it the way it is for my current setup.
+
+Enjoy. Working great as a remote audio player. Fully functional with Kore remote using the library views.
+Currently have it going to my living room Xubuntu / Kodi network boot. A raspberry pi directly connected to
+a sound system would be perfect.
