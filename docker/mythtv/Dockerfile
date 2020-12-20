@@ -21,6 +21,7 @@ RUN apt update && apt install -y --no-install-recommends \
 	cron \
 	mariadb-server \
 	tzdata \
+	xmltv-util \
 	libmythtv-perl && \
 	rm -r /var/lib/apt/lists/* && \
 	apt -y --purge autoremove curl
