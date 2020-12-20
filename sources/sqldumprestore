@@ -1,0 +1,67 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+# sql backup & restoration
+
+# variables #
+
+SQLBACKUPS=/snapraid/pool/backups/mysqldump/newscripttest
+
+# functions #
+
+full_server_dump() {
+	for db in $(docker exec -t "$1" mysql -e "show databases;" \
+	| awk '{print $2}') ; do
+		case "$db" in
+			Database|information_schema|mysql|performance_schema)
+				continue
+				;;
+			*)
+				[ -d "$SQLBACKUPS"/"$1"/"$db" ] \
+				|| mkdir -p "$SQLBACKUPS"/"$1"/"$db"
+				docker exec -t "$1" mysqldump \
+				--user=backup \
+				--password=backup \
+				--single-transaction "$db" \
+				| gzip > "$SQLBACKUPS"/"$1"/"$db"/"$db"."$NOW".sql.gz
+				;;
+		esac
+	done
+	[ -d "$SQLBACKUPS"/"$1"/users ] \
+	|| mkdir -p "$SQLBACKUPS"/"$1"/users
+	docker exec -t "$1" mysql -BNe \
+	"select concat('\'',user,'\'@\'',host,'\'') from mysql.user where user \
+	!= 'root'" | while read uh ; do 
+	docker exec -t "$1" mysql -BNe "show grants for $uh" \
+	| sed 's/$/;/; s/\\\\/\\/g'; \
+	done | gzip > "$SQLBACKUPS"/"$1"/users/users."$NOW".sql.gz
+	find "$SQLBACKUPS"/"$1"/ -name '*.sql.gz' -mtime +2 -exec rm {} \;
+}
+
+full_server_restore() {
+	for db in $(find "$SQLBACKUPS"/"$1"/ -maxdepth 1 -mindepth 1 -type d) ; do
+		DBNAME=$(basename "$db")
+		docker exec -i "$1" mysql -e "create database ${DBNAME};"
+		zcat $(find "$db"/ -name '*.sql.gz' | sort -n | tail -n 1) \
+		| docker exec -i "$1" mysql "$DBNAME"
+	done
+}
+
+
+
+case "$1" in
+	dump|restore)
+		MAINOPT="$1"
+		shift
+		for DCON in "$@" ; do
+			full_server_"$MAINOPT" "$DCON"
+		done
+		;;
+	*)
+		echo "usage: ${0} (dump|restore) (dockercontainers)"
+		exit 0
+		;;
+esac
+		
+
+
+
