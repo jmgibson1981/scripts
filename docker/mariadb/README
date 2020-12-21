@@ -1,0 +1,5 @@
+Mariadb docker container. 
+
+Built for my home usage. Adjust start.source before build as needed.
+
+# docker run -id -p 3306:3306 -h "$NAME" --name "$NAME" --mount source=sql,destination=/var/lib/mysql --restart always "$NAME"
