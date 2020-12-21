@@ -97,17 +97,17 @@ mythtv_config_func
 ssh_config_func
 crontab_config_func
 
+
 if [ -f /etc/mythtvenv/$(uname -n) ] ; then
 	. /etc/mythtvenv/$(uname -n)
 	sed -i "s/33066/${SQLPORT}/" /etc/mysql/mariadb.conf.d/99-mythtv.cnf
 	sed -i "s/33066/${SQLPORT}/" /etc/mythtv/config.xml
 	sed -i "s/22222/${SSHPORT}/" /etc/ssh/sshd_config
 	sed -i "s/^ARGS=\"--daemon/ARGS=\"--override-setting MasterServerPort=${BackendServerPort} --override-setting BackendServerPort=${BackendServerPort} --override-setting BackendStatusPort=${BackendStatusPort} --daemon/" /etc/init.d/mythtv-backend
-	start_services
-	service mythtv-backend start && bash
-else
-	start_services
-	service mythtv-backend start && bash
 fi
+
+start_services
+sleep 10
+service mythtv-backend start && bash
 
 # end script #
