@@ -1,0 +1,13 @@
+--- /etc/pulse/default.pa	2020-10-15 14:23:31.000000000 -0700
++++ /root/default.pa	2020-12-17 10:06:06.830293371 -0700
+@@ -80,8 +80,9 @@
+ ### Network access (may be configured with paprefs, so leave this commented
+ ### here if you plan to use paprefs)
+ #load-module module-esound-protocol-tcp
+-#load-module module-native-protocol-tcp
++load-module module-native-protocol-tcp
+ #load-module module-zeroconf-publish
++load-module module-zeroconf-discover
+ 
+ ### Load the RTP receiver module (also configured via paprefs, see above)
+ #load-module module-rtp-recv
