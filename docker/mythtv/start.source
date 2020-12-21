@@ -8,12 +8,6 @@ CRONTAB=/var/spool/cron/crontabs/root
 
 # functions #
 
-start_services() {
-	service mysql start
-	service cron start
-	service ssh start
-}
-
 # sql server #
 
 local_sql_config_func() {
@@ -86,8 +80,7 @@ Subsystem	sftp	/usr/lib/openssh/sftp-server" > /etc/ssh/sshd_config
 
 crontab_config_func() {
 	echo "00 02 * * 7	/root/optimize_mythdb.pl" > "$CRONTAB"
-	chown root:crontab "$CRONTAB"
-	chmod 600 "$CRONTAB"
+	chown root:crontab "$CRONTAB" && chmod 600 "$CRONTAB"
 }
 
 # start up #
@@ -106,7 +99,9 @@ if [ -f /etc/mythtvenv/$(uname -n) ] ; then
 	sed -i "s/^ARGS=\"--daemon/ARGS=\"--override-setting MasterServerPort=${BackendServerPort} --override-setting BackendServerPort=${BackendServerPort} --override-setting BackendStatusPort=${BackendStatusPort} --daemon/" /etc/init.d/mythtv-backend
 fi
 
-start_services
+service mysql start
+service cron start
+service ssh start
 sleep 10
 service mythtv-backend start && bash
 
