@@ -6,7 +6,6 @@
 # create my configuration #
 
 echo "[mysqld]
-port = 51000
 optimizer_search_depth = 1
 skip-name-resolve
 innodb_adaptive_hash_index = off
@@ -20,6 +19,6 @@ if [ ! -e /var/lib/mysql/.tzdatalockDNR ] ; then
 	touch /var/lib/mysql/.tzdatalockDNR && service mysql stop
 fi
 
-exec "$@"
+service mysql start && bash
 
 # end script #

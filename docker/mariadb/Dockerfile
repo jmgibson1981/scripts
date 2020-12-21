@@ -10,7 +10,7 @@ RUN apt update && apt install -y \
 	curl && \
 	ln -s /usr/share/zoneinfo/$(curl https://ipapi.co/timezone) /etc/localtime
 
-COPY start.source /start.source
+COPY start.source /entrypoint.sh
 
 # install & cleanup #
 
@@ -18,10 +18,8 @@ RUN apt install -y --no-install-recommends \
 	tzdata \
 	mariadb-server && \
 	rm -r /var/lib/apt/lists/* && \
-	apt --purge autoremove -y curl
+	apt --purge autoremove -y curl && \
+	chmod 755 /entrypoint.sh
 
-EXPOSE 3306
 
-ENTRYPOINT ["/start.source"]
-
-CMD ["mysqld"]
+ENTRYPOINT ["/entrypoint.sh"]
