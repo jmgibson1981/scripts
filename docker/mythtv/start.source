@@ -24,15 +24,14 @@ datadir = ${STORAGEFOLDER}/sql" > /etc/mysql/mariadb.conf.d/99-mythtv.cnf
 		mysql_install_db --user=mysql --ldata="$STORAGEFOLDER"/sql/ --basedir=/usr
 		service mysql start
 		echo "CREATE DATABASE IF NOT EXISTS mythconverg;
-CREATE USER IF NOT EXISTS 'mythtv'@'localhost' IDENTIFIED WITH mysql_native_password;
-ALTER USER 'mythtv'@'localhost' IDENTIFIED BY 'mythtv';
+CREATE USER IF NOT EXISTS 'mythtv'@'localhost' IDENTIFIED BY 'mythtv';
 GRANT ALL ON mythconverg.* TO mythtv@localhost;
 FLUSH PRIVILEGES;
-GRANT CREATE TEMPORARY TABLES ON mythconverg.* TO mythtv@localhost;
+GRANT CREATE TEMPORARY TABLES ON mythconverg.* TO 'mythtv'@'localhost';
 FLUSH PRIVILEGES;
 ALTER DATABASE mythconverg DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 CREATE USER IF NOT EXISTS 'backup'@'localhost' IDENTIFIED BY 'backup';
-GRANT ALL ON *.* TO 'backup';
+GRANT ALL ON *.* TO 'backup'@'localhost';
 FLUSH PRIVILEGES;" > /tmp/mythdbsetup
 		cat /tmp/mythdbsetup | mysql
 		mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql mysql
