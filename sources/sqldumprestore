@@ -4,7 +4,9 @@
 
 # variables #
 
-SQLBACKUPS=/snapraid/pool/backups/mysqldump/newscripttest
+SQLBACKUPS=/snapraid/pool/backups/mysqldump
+
+NOW=$(date +%Y.%m.%d.%H.%M)
 
 # functions #
 
@@ -26,8 +28,7 @@ full_server_dump() {
 				;;
 		esac
 	done
-	[ -d "$SQLBACKUPS"/"$1"/users ] \
-	|| mkdir -p "$SQLBACKUPS"/"$1"/users
+	[ -d "$SQLBACKUPS"/"$1"/users ] || mkdir -p "$SQLBACKUPS"/"$1"/users
 	docker exec -t "$1" mysql -BNe \
 	"select concat('\'',user,'\'@\'',host,'\'') from mysql.user where user \
 	!= 'root'" | while read uh ; do 
@@ -40,7 +41,7 @@ full_server_dump() {
 full_server_restore() {
 	for db in $(find "$SQLBACKUPS"/"$1"/ -maxdepth 1 -mindepth 1 -type d) ; do
 		DBNAME=$(basename "$db")
-		docker exec -i "$1" mysql -e "create database ${DBNAME};"
+		docker exec -i "$1" mysql -e "CREATE DATABASE IF NOT EXISTS ${DBNAME};"
 		zcat $(find "$db"/ -name '*.sql.gz' | sort -n | tail -n 1) \
 		| docker exec -i "$1" mysql "$DBNAME"
 	done
