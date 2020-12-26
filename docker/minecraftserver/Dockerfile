@@ -18,21 +18,10 @@ RUN apt update && apt install -y --no-install-recommends \
 	rsync \
 	cron && \
 	apt clean && rm -r /var/lib/apt/lists/*
-		
-# get current minecraft server jar file #
-
-RUN wget -O - https://www.minecraft.net/en-us/download/server \
-	> /tmp/mcserver && \
-	grep minecraft_server.[1-9] /tmp/mcserver > /tmp/mcservertype && \
-	while IFS='"' read -r trash1 info trash2 ; do \
-	wget -O /root/server.jar "$info" && break ; done < /tmp/mcservertype && \
-	rm /tmp/mcserver /tmp/mcservertype
 
 # insert config files and modify permissions as needed #
 
-
 COPY minecraft /etc/init.d/minecraft
-COPY root /var/spool/cron/crontabs/root
-RUN chmod 600 /var/spool/cron/crontabs/root && \
-	chown root:crontab /var/spool/cron/crontabs/root && \
-	chmod 755 /etc/init.d/minecraft
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod 755 /etc/init.d/minecraft && \
+	chmod 755 /entrypoint.sh

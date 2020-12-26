@@ -1,6 +1,11 @@
 #!/bin/sh
 # /etc/init.d/minecraft
-# version 1.1
+# version 1.2
+
+# 1.2 changes - added backup to the usage statement.
+# adjusted hard backups to every 8 hours from 12 hours.
+# added jar file updating function and adjusted mc_stop to include it for
+# automatic run via cron.
 
 # sourced and modified from
 # https://minecraft.gamepedia.com/Tutorials/Server_startup_script#Init.d_Script
@@ -25,7 +30,7 @@ WORLDS="/var/lib/minecraft"
 CURRENT="$(uname -n)"
 NOW="$(date +%Y.%m.%d.%H.%M)"
 BACKUPDIR="/var/lib/minecraft/BACKUPS"
-JARFILE="/root/server.jar"
+JARFILE="${WORLDS}/SERVER.jar"
 JAVAOPTS="nogui"
 
 mc_start_cmd() {
@@ -39,8 +44,8 @@ mc_start_cmd() {
 # from this same file when starting the container for setting necessary ports.
 
 mc_server_customize() {
-	if [ ! -f "$WORLDS"/"$CURRENT"/server.properties ] ; then
-		SERVFILE="$WORLDS"/"$CURRENT"/server.properties
+	SERVFILE="$WORLDS"/"$CURRENT"/server.properties
+	if [ ! -f "$SERVFILE" ] ; then
 		cp "$WORLDS"/ENVFOLDER/server.properties.base "$SERVFILE"
 		. "$WORLDS"/ENVFOLDER/"$CURRENT"
 		# game type
@@ -62,6 +67,7 @@ mc_server_customize() {
 }
 
 mc_server_start() {
+	[-e "$JARFILE" ] || mc_jar_update
 	# checks screen to make sure world not running
 	if ! screen -ls | grep "$CURRENT" ; then
 		# makes world directory if needed
@@ -133,6 +139,25 @@ mc_world_status() {
 	fi
 }
 
+mc_jar_update() {
+	wget -O - https://www.minecraft.net/en-us/download/server > /tmp/mcserver
+	grep minecraft_server.[1-9] /tmp/mcserver > /tmp/mcservertype
+	while IFS='"' read -r trash1 info trash2 ; do
+		wget -O "$JARFILE".tmp "$info" && break ; done < /tmp/mcservertype
+	rm /tmp/mcserver /tmp/mcservertype
+	CURRENTFILE=$(sha1sum "$JARFILE" | cut -d ' ' -f 1)
+	NEWFILE=$(sha1sum "$JARFILE".tmp | cut -d ' ' -f 1)
+	if [ "$CURRENTFILE" != "$NEWFILE" ] ; then
+		if [ -f "$JARFILE" ] ; then
+			mv "$JARFILE".tmp "$JARFILE"
+		else
+			mc_backup_func stop
+			mv "$JARFILE".tmp "$JARFILE"
+			mc_server_start
+		fi
+	fi
+}
+
 case "$1" in
 	start)
 		mc_server_start
@@ -150,8 +175,11 @@ case "$1" in
 	status)
 		mc_world_status
 		;;
+	update)
+		mc_jar_update
+		;;
 	*)
-		echo "Usage: ${0} (start|stop|restart|status)"
+		echo "Usage: ${0} (start|stop|restart|status|backup|update)"
 		exit 1
 		;;
 esac

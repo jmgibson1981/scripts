@@ -21,8 +21,6 @@ ExecStart = /snap/bin/docker run \
 	--mount source=minecraft,destination=/var/lib/minecraft \
 	--name %i \
 	mcserver
-ExecStart = /snap/bin/docker exec -i %i service minecraft start
-ExecStart = /snap/bin/docker exec -i %i service cron start
 ExecStop = /snap/bin/docker exec -i %i service minecraft stop
 ExecStop = /snap/bin/docker stop %i
 RemainAfterExit = yes

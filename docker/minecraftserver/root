@@ -1,7 +1,0 @@
-# regular backups. critical for ramdisk use
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-MAILTO=""
-USER=root
-# m h  dom mon dow   command
-# currently set to every 10 minutes for potential ramdisk usage
-*/10 * * * *	service minecraft backup
