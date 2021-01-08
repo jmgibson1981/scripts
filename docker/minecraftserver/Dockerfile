@@ -1,9 +1,10 @@
-  
 # no frills vanilla java minecraft server #
 FROM ubuntu:focal
 LABEL maintainer="Tadaen Sylvermane <jmgibson81@gmail.com>"
 
 # install & cleanup #
+
+COPY entrypoint.sh /entrypoint.sh
 
 # cron is optional. in my case i insert a root crontab to backup the world
 # regularly. if you choose to not install cron and backup another way then 
@@ -18,11 +19,5 @@ RUN apt update && apt install -y --no-install-recommends \
 	wget \
 	rsync \
 	cron && \
-	apt clean && rm -r /var/lib/apt/lists/*
-
-# insert config files and modify permissions as needed #
-
-COPY minecraft /etc/init.d/minecraft
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod 755 /etc/init.d/minecraft && \
+	apt clean && rm -r /var/lib/apt/lists/* && \
 	chmod 755 /entrypoint.sh
