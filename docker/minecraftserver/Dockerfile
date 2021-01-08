@@ -1,3 +1,4 @@
+  
 # no frills vanilla java minecraft server #
 FROM ubuntu:focal
 LABEL maintainer="Tadaen Sylvermane <jmgibson81@gmail.com>"
