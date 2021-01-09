@@ -61,6 +61,18 @@ mythtv_config_func() {
 	chown mythtv:mythtv "$STORAGEFOLDER"
 	echo "mythtv ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/mythtv
 	echo "mythtv:mythtv" | chpasswd
+	chsh --shell /bin/bash mythtv
+  for dir in $(find /var/lib/mythtv/ -mindepth 1 -maxdepth 1 -type d) ; do
+		DIRNAME=$(basename "$dir")
+		case "$DIRNAME" in
+			sql)
+				continue
+				;;
+			*)
+				chown -R mythtv:mythtv /var/lib/mythtv/"$DIRNAME"
+				;;
+		esac
+	done
 }
 
 ssh_config_func() {
