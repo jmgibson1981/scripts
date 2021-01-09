@@ -1,12 +1,13 @@
 Git - https://github.com/jmgibson1981/scripts/tree/main/docker/mythtv
 
+V1.2 Notes: sorted out some issues with permissions when creating a new image. also gave the mythtv user the /bin/bash shell prompt.
 V1.1 Notes: moved to a proper entrypoint rather than systemd service to manage. also added the xmltv-util package.
 
 This docker is built for a fully self contained mythtv backend. It has mariadb built in and the ability to run multiple instances based on environment files. It also has cron installed and runs the optimization script on the database weekly.
 
 To run this container use the following format
 
-docker run -id --name "$NAME" -h "$NAME" --network host --mount source=mythtvenv,destination=/etc/mythtvenv --mount source="$NAME",destination=/var/lib/mythtv --restart always mythtvsql
+docker run -id --name "$NAME" -h "$NAME" --network host --mount source=mythtvenv,destination=/etc/mythtvenv --mount source="$NAME",destination=/var/lib/mythtv --restart always mythtv
 
 I symlink the mythtvenv volume into /root/MYTHTVENV for convenience. You name these files to the "$NAME" variable. If you do not have a matching file it will run on default ports. The files are just 4 bash / sh variables. Example below. The shebang is just for highlighting in my editor.
 
