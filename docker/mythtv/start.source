@@ -11,6 +11,16 @@ CRONTAB=/var/spool/cron/crontabs/root
 # sql server #
 
 local_sql_config_func() {
+	for file in $(find /var/lib/mythtv/sql/ -maxdepth 1 -mindepth 1) ; do
+		case $(basename "$file") in
+			mysql_upgrade_info|debian-10.3.flag)
+				continue
+				;;
+			*)
+				chown -R mysql:mysql "$file"
+				;;
+		esac
+	done
 	echo "[mysqld]
 port = 33066
 optimizer_search_depth = 1
@@ -62,7 +72,7 @@ mythtv_config_func() {
 	echo "mythtv ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/mythtv
 	echo "mythtv:mythtv" | chpasswd
 	chsh --shell /bin/bash mythtv
-  for dir in $(find /var/lib/mythtv/ -mindepth 1 -maxdepth 1 -type d) ; do
+    for dir in $(find /var/lib/mythtv/ -mindepth 1 -maxdepth 1 -type d) ; do
 		DIRNAME=$(basename "$dir")
 		case "$DIRNAME" in
 			sql)

@@ -5,6 +5,17 @@
 
 # create my configuration #
 
+for file in $(find /var/lib/mysql/ -maxdepth 1 -mindepth 1) ; do
+	case $(basename "$file") in
+	mysql_upgrade_info|debian-10.3.flag)
+		continue
+		;;
+	*)
+		chown -R mysql:mysql "$file"
+		;;
+	esac
+done
+
 echo "[mysqld]
 optimizer_search_depth = 1
 skip-name-resolve
