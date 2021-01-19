@@ -22,6 +22,8 @@ RUN echo "deb-src http://archive.ubuntu.com/ubuntu focal main" >> \
 # https://www.vultr.com/docs/how-to-compile-squid3-on-ubuntu-12-04
 # https://serverfault.com/questions/987363/squid-proxy-using-https
 
+COPY entrypoint.sh /entrypoint.sh
+
 RUN apt install -y ${BUILDPACKAGES} ${STAYPACKAGES} && \
 	apt build-dep -y squid openssl && \
 	cd /root && \
@@ -40,12 +42,10 @@ RUN apt install -y ${BUILDPACKAGES} ${STAYPACKAGES} && \
 	echo "root:root" | chpasswd && \
 	apt --purge autoremove -y ${BUILDPACKAGES} && \
 	passwd -d root && \
-	rm -r /var/lib/apt/lists/*
+	rm -r /var/lib/apt/lists/* && \
+	chmod 755 /entrypoint.sh
 
-COPY squidcert.source /usr/local/bin/squidcert.source
-RUN chmod 755 /usr/local/bin/squidcert.source
-
-
+ENTRYPOINT ["/entrypoint.sh"]
 
 
 

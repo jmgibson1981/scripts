@@ -48,4 +48,7 @@ if [ ! "$(ls -A ${CERTSDIR})" ] ; then
 	chown -R proxy:proxy /var/spool/squid/ssl_db
 fi
 
+service squid start
+exec bash
+
 # end script #
