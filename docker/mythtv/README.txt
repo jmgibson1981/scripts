@@ -1,5 +1,6 @@
 Git - https://github.com/jmgibson1981/scripts/tree/main/docker/mythtv
 
+V1.3 Notes: Fixed another permissions issue with the SQL directory. Also added a check to remove existing pid file on container stop / start. This existing pid would prevent the backend from starting properly.
 V1.2 Notes: sorted out some issues with permissions when creating a new image. also gave the mythtv user the /bin/bash shell prompt.
 V1.1 Notes: moved to a proper entrypoint rather than systemd service to manage. also added the xmltv-util package.
 
