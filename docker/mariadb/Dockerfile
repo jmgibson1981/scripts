@@ -10,7 +10,7 @@ RUN apt update && apt install -y \
 	curl && \
 	ln -s /usr/share/zoneinfo/$(curl https://ipapi.co/timezone) /etc/localtime
 
-COPY start.source /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 
 # install & cleanup #
 
@@ -20,6 +20,5 @@ RUN apt install -y --no-install-recommends \
 	rm -r /var/lib/apt/lists/* && \
 	apt --purge autoremove -y curl && \
 	chmod 755 /entrypoint.sh
-
 
 ENTRYPOINT ["/entrypoint.sh"]

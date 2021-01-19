@@ -1,6 +1,6 @@
 Initial configuration is done on first run.
 
-docker run -id --restart always --name kodiheadless -h kodiheadless --mount source=kodiheadless,destination=/root -p 58080:8080 -p 58081:5900 kodiheadless
+docker run -id --restart always --name "$NAME" -h "$NAME" --mount source=kodiheadless,destination=/root -p 58080:8080 -p 58081:5900 "$NAME"
 
 Ports are Kore and VNC server respectively. Adjust as needed.
 

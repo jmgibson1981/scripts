@@ -5,6 +5,8 @@ LABEL maintainer="Tadaen Sylvermane <jmgibson81@gmail.com>"
 # needed for tzdata
 # https://stackoverflow.com/questions/44331836/apt-get-install-tzdata-noninteractive
 
+COPY entrypoint.sh /entrypoint.sh
+
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install -y \
 	gnupg \
@@ -21,10 +23,7 @@ RUN apt update && apt install -y --no-install-recommends \
 	kodi \
 	kodi-eventclients-kodi-send && \
 	apt --purge -y autoremove software-properties-common && \
-	rm -r /var/lib/apt/lists/*
-
-COPY start.source /entrypoint.sh
-
-RUN chmod 755 /entrypoint.sh
+	rm -r /var/lib/apt/lists/* && \
+	chmod 755 /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
