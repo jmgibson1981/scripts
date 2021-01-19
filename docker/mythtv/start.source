@@ -120,10 +120,12 @@ if [ -f /etc/mythtvenv/$(uname -n) ] ; then
 	sed -i "s/^ARGS=\"--daemon/ARGS=\"--override-setting MasterServerPort=${BackendServerPort} --override-setting BackendServerPort=${BackendServerPort} --override-setting BackendStatusPort=${BackendStatusPort} --daemon/" /etc/init.d/mythtv-backend
 fi
 
+[ -f /run/mythtv/mythbackend.pid ] && rm /run/mythtv/mythbackend.pid
 service mysql start
 service cron start
 service ssh start
 sleep 10
-service mythtv-backend start && bash
+service mythtv-backend start
+exec bash
 
 # end script #
