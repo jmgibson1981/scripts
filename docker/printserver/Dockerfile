@@ -11,7 +11,7 @@ RUN apt update && apt install -y \
 	curl && \
 	ln -s /usr/share/zoneinfo/$(curl https://ipapi.co/timezone) /etc/localtime
 
-COPY start.source /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 
 RUN apt update && apt -y install --no-install-recommends \
 	cups \
