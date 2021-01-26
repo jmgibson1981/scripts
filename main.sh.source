@@ -8,6 +8,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/us
 POOLLOC=/snapraid/pool
 NOW=$(date +%Y.%m.%d.%H.%M)
 SCRIPTCALL=$(basename "$0")
+SQLBACKUPS="$POOLLOC"/backups/mysqldump
 
 # minecraft server variables #
 
@@ -273,8 +274,25 @@ snapraid_scrub_func() {
 		cp "$LOGFILELOC"/snapscrub."$NOW".log /root
 	fi
 	find "$LOGFILELOC"/ -type f -mtime +60 -exec rm {} \;
-	snapraid sync
 }
+
+
+full_sql_restore() {
+	for db in $(find "$SQLBACKUPS"/"$1"/ -maxdepth 1 -mindepth 1 -type d) ; do
+		DBNAME=$(basename "$db")
+		if [ "$DBNAME" = users ] ; then
+			zcat $(find "$db"/ -name '*.sql.gz' | sort -n | tail -n 1) \
+			| docker exec -i "$1" mysql
+		else
+			docker exec -i "$1" mysql -e "CREATE DATABASE IF NOT EXISTS ${DBNAME};"
+			zcat $(find "$db"/ -name '*.sql.gz' | sort -n | tail -n 1) \
+			| docker exec -i "$1" mysql "$DBNAME"
+		fi
+	done
+}
+
+
+
 
 # execution #
 
@@ -296,6 +314,11 @@ case "$SCRIPTCALL" in
 			full_sql_dump "$DCON"
 		done
 		;;
+	sqlrestore)
+		for DCON in "$@" ; do
+			full_sql_restore "$DCON"
+		done
+		;;
 	jwdownload)
 		download_jworg_func "$@"
 		;;
@@ -308,18 +331,14 @@ case "$SCRIPTCALL" in
 	lxdbuilder)
 		lxd_container_build "$@"
 		;;
-	dailymaintenance)
-		EMERGEMAIL="$1"
-		shift
-		full_sql_dump "$@"
-		desktop_home_dir_func
-		snapraid_scrub_func "$EMERGEMAIL"
+	snapscrub)
+		snapraid_scrub_func "$@"
 		;;
 	*)
 		bin_link_func "$1" datadisk snapscrub remotepoweroff remotereboot
 		bin_link_func "$1" remotewake sqlbackup mcbackup jwdownload
 		bin_link_func "$1" desktoprestore mcssdlaunch desktopbackup
-		bin_link_func "$1" lxdbuilder dailymaintenance
+		bin_link_func "$1" lxdbuilder snapscrub
 		;;
 esac
 
