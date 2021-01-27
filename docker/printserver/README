@@ -1,6 +1,6 @@
 Simple cups server. Execute as follows
 
-# docker run -id -h "$NAME" --name "$NAME" --network host --mount source="$NAME",destination=/var/cache/cups --restart always "$NAME"
+# docker run -id -h "$NAME" --name "$NAME" --network host --mount source="$NAME",destination=/var/cache/cups --mount source=printspooler,destination=/var/spool/cups --restart always "$NAME"
 
 Access at dockerhost:631
 
