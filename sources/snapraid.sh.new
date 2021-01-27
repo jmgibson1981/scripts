@@ -1,0 +1,49 @@
+#!/bin/sh
+# tadaen sylvermane | jason gibson
+
+# snapraid sync & scrub #
+
+# variables #
+
+# snapraid directories #
+
+BASEFOLDER=/snapraid
+DATAFOLDER="$BASEFOLDER"/data
+PARITYFOLDER="$BASEFOLDER"/parity
+LVSNAPS="$BASEFOLDER"/lvsnapshots
+
+# functions #
+
+lv_snap_create_mount() {
+	for dir in "$DATAFOLDER"/* ; do
+		MOUNTDIR=$(basename "$dir")
+		if ! mountpoint "$LVSNAPS"/"$MOUNTDIR" > /dev/null ; then
+			lvcreate -y -s -n "$MOUNTDIR".snap -L 500m "$MOUNTDIR"/"$MOUNTDIR"
+			[ -d "$LVSNAPS"/"$MOUNTDIR" ] || mkdir -p "$LVSNAPS"/"$MOUNTDIR"
+			mount /dev/"$MOUNTDIR"/"$MOUNTDIR".snap "$LVSNAPS"/"$MOUNTDIR"
+		fi
+	done
+}
+
+lv_snap_destroy_unmount() {
+	for dir in "$LVSNAPS"/* ; do
+		MOUNTDIR=$(basename "$dir")
+		if mountpoint "$dir" > /dev/null ; then
+			umount "$dir"
+			lvremove -y /dev/"$MOUNTDIR"/"$MOUNTDIR".snap
+		fi
+	done
+}
+
+
+case "$1" in
+	sync)
+		lv_snap_create_mount
+		snapraid sync
+		lv_snap_destroy_unmount
+		;;
+	scrub)
+		exit 0
+		;;
+esac
+
