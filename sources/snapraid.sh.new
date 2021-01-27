@@ -1,12 +1,16 @@
 #!/bin/sh
 # tadaen sylvermane | jason gibson
 
-# snapraid sync & scrub #
+# snapraid sync & scrub with lvm #
 
 # variables #
 
+NOW=$(date +%Y.%m.%d.%H.%M)
+
 # snapraid directories #
 
+LOGFILELOC=/var/snapraid/logs
+SNAPRAIDCONFIG=/etc/snapraid.conf
 BASEFOLDER=/snapraid
 DATAFOLDER="$BASEFOLDER"/data
 PARITYFOLDER="$BASEFOLDER"/parity
@@ -14,7 +18,38 @@ LVSNAPS="$BASEFOLDER"/lvsnapshots
 
 # functions #
 
+emergency_email_func() {
+	EMAILLOC=/tmp/"$(uname -n)"."$2"."$NOW".alert
+	echo "To: ${1}
+From: $(grep from "$HOME"/.msmtprc | cut -d' ' -f 2)
+Subject: $(uname -n) alert!
+
+" > "$EMAILLOC"
+	echo "snapraid scrub finished with errors. check manually" >> "$EMAILLOC"
+	msmtp "$1" < "$EMAILLOC"
+	rm "$EMAILLOC"
+}
+
+snap_conf_line_edit() {
+	sed -i '/^data/d' "$SNAPRAIDCONFIG"
+	case "$1" in
+		data)
+			CURRENTLOC="$DATAFOLDER"
+			;;
+		snaps)
+			CURRENTLOC="$LVSNAPS"
+			;;
+	esac
+	find "$DATAFOLDER"/ -maxdepth 1 -mindepth 1 | sort -n | while read line ; do
+		LINENUM=$(echo "$line" | cut -d \/ -f 4)
+		echo "data d$(echo ${LINENUM} | tail -c 2) ${CURRENTLOC}/${LINENUM}" >> \
+		"$SNAPRAIDCONFIG"
+	done
+	sed -i '/^$/d' "$SNAPRAIDCONFIG"
+}
+
 lv_snap_create_mount() {
+	snap_conf_line_edit snaps
 	for dir in "$DATAFOLDER"/* ; do
 		MOUNTDIR=$(basename "$dir")
 		if ! mountpoint "$LVSNAPS"/"$MOUNTDIR" > /dev/null ; then
@@ -26,6 +61,7 @@ lv_snap_create_mount() {
 }
 
 lv_snap_destroy_unmount() {
+	snap_conf_line_edit data
 	for dir in "$LVSNAPS"/* ; do
 		MOUNTDIR=$(basename "$dir")
 		if mountpoint "$dir" > /dev/null ; then
@@ -35,15 +71,32 @@ lv_snap_destroy_unmount() {
 	done
 }
 
+snapraid_scrub_func() {
+	[ -d "$LOGFILELOC" ] || mkdir -p "$LOGFILELOC"
+	snapraid scrub -l "$LOGFILELOC"/snapscrub."$NOW".log
+	if ! grep "msg:status Ok" "$LOGFILELOC"/snapscrub."$NOW".log ; then
+		emergency_email_func "$1" snapraid
+		cp "$LOGFILELOC"/snapscrub."$NOW".log /root
+	fi
+	find "$LOGFILELOC"/ -type f -mtime +60 -exec rm {} \;
+}
 
-case "$1" in
-	sync)
-		lv_snap_create_mount
-		snapraid sync
-		lv_snap_destroy_unmount
-		;;
-	scrub)
-		exit 0
-		;;
-esac
-
+if [ "$USER" = root ] ; then
+	case "$1" in
+		sync)
+			lv_snap_create_mount
+			snapraid sync
+			lv_snap_destroy_unmount
+			;;
+		scrub)
+			snapraid_scrub_func "$1"
+			;;
+		*)
+			echo "usage: ${0} (sync | scrub {email alert target})"
+			exit 0
+			;;
+	esac
+else
+	echo "must run as root"
+	exit 1
+fi
