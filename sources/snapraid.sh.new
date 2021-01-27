@@ -3,6 +3,17 @@
 
 # snapraid sync & scrub with lvm #
 
+# the goal of this script is to be able to sync a snapraid array without being 
+# interrupted by a potential write. this leverages lvm snapshots to create
+# the parity from rather than directly from the disks. the snapshots are
+# eliminated after the sync is done.
+
+# packages required (based on debian / ubuntu)
+
+# lvm2
+# snapraid
+# msmtp
+
 # variables #
 
 NOW=$(date +%Y.%m.%d.%H.%M)
@@ -13,8 +24,10 @@ LOGFILELOC=/var/snapraid/logs
 SNAPRAIDCONFIG=/etc/snapraid.conf
 BASEFOLDER=/snapraid
 DATAFOLDER="$BASEFOLDER"/data
-PARITYFOLDER="$BASEFOLDER"/parity
 LVSNAPS="$BASEFOLDER"/lvsnapshots
+# this is just here for reference
+PARITYFOLDER="$BASEFOLDER"/parity
+
 
 # functions #
 
@@ -29,6 +42,14 @@ Subject: $(uname -n) alert!
 	msmtp "$1" < "$EMAILLOC"
 	rm "$EMAILLOC"
 }
+
+# this function toggles the /etc/snapraid.conf file data locations so that the
+# sync only runs from the lv snapshots. after finishing it switches them back
+# to the regular in use volumes. the folder names are based on using mergerfs
+# for the pooling. in my case all drives are mounted under 
+# /snapraid/data/data"$n" where "$n" = the number of the disk = to d1, d2 and
+# so forth
+# my test vm had drives mounted @ /snapraid/data/data1, /snapraid/data/data2
 
 snap_conf_line_edit() {
 	sed -i '/^data/d' "$SNAPRAIDCONFIG"
@@ -48,6 +69,8 @@ snap_conf_line_edit() {
 	sed -i '/^$/d' "$SNAPRAIDCONFIG"
 }
 
+# this function creates and mounts the snapshots as needed for sync
+
 lv_snap_create_mount() {
 	snap_conf_line_edit snaps
 	for dir in "$DATAFOLDER"/* ; do
@@ -60,6 +83,8 @@ lv_snap_create_mount() {
 	done
 }
 
+# this function unmounts and destroys the snapshots immediately following sync
+
 lv_snap_destroy_unmount() {
 	snap_conf_line_edit data
 	for dir in "$LVSNAPS"/* ; do
@@ -71,6 +96,12 @@ lv_snap_destroy_unmount() {
 	done
 }
 
+# this handles scrubbing and sends an email if there are errors. this needs
+# more testing. as i just wrote this using debian inside of virtualbox my
+# parity isn't old enough to scrub. i may incorporate some of the script found
+# here - https://zackreed.me/updated-snapraid-sync-script/ if mine doesn't work
+# aiming for super simple. less involved the better.
+
 snapraid_scrub_func() {
 	[ -d "$LOGFILELOC" ] || mkdir -p "$LOGFILELOC"
 	snapraid scrub -l "$LOGFILELOC"/snapscrub."$NOW".log
@@ -80,6 +111,8 @@ snapraid_scrub_func() {
 	fi
 	find "$LOGFILELOC"/ -type f -mtime +60 -exec rm {} \;
 }
+
+# begin script #
 
 if [ "$USER" = root ] ; then
 	case "$1" in
@@ -100,3 +133,5 @@ else
 	echo "must run as root"
 	exit 1
 fi
+
+# end script #
