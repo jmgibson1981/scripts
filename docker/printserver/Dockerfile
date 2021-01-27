@@ -13,7 +13,7 @@ RUN apt update && apt install -y \
 
 COPY entrypoint.sh /entrypoint.sh
 
-RUN apt update && apt -y install --no-install-recommends \
+RUN apt update && apt -y install \
 	cups \
 	patch \
 	hplip && \
