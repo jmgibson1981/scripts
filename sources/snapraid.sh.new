@@ -8,6 +8,11 @@
 # the parity from rather than directly from the disks. the snapshots are
 # eliminated after the sync is done.
 
+# known issues #
+
+# as of right now trying to add an exclude after a sync breaks existing content
+# files and requires a full fresh sync.
+
 # packages required (based on debian / ubuntu)
 
 # lvm2
@@ -62,9 +67,8 @@ snap_conf_line_edit() {
 			;;
 	esac
 	find "$DATAFOLDER"/ -maxdepth 1 -mindepth 1 | sort -n | while read line ; do
-		LINENUM=$(echo "$line" | cut -d \/ -f 4)
-		echo "data d$(echo ${LINENUM} | tail -c 2) ${CURRENTLOC}/${LINENUM}" >> \
-		"$SNAPRAIDCONFIG"
+		echo "data d$(basename ${line} | tail -c 2) \
+${CURRENTLOC}/$(basename ${line})" >> "$SNAPRAIDCONFIG"
 	done
 	sed -i '/^$/d' "$SNAPRAIDCONFIG"
 }
@@ -104,7 +108,7 @@ lv_snap_destroy_unmount() {
 
 snapraid_scrub_func() {
 	[ -d "$LOGFILELOC" ] || mkdir -p "$LOGFILELOC"
-	snapraid scrub -l "$LOGFILELOC"/snapscrub."$NOW".log
+	/usr/bin/snapraid scrub -l "$LOGFILELOC"/snapscrub."$NOW".log
 	if ! grep "msg:status Ok" "$LOGFILELOC"/snapscrub."$NOW".log ; then
 		emergency_email_func "$1" snapraid
 		cp "$LOGFILELOC"/snapscrub."$NOW".log /root
@@ -118,15 +122,14 @@ if [ "$USER" = root ] ; then
 	case "$1" in
 		sync)
 			lv_snap_create_mount
-			snapraid sync
-			lv_snap_destroy_unmount
+#			/usr/bin/snapraid sync
+#			lv_snap_destroy_unmount
 			;;
 		scrub)
 			snapraid_scrub_func "$1"
 			;;
 		*)
-			echo "usage: ${0} (sync | scrub {email alert target})"
-			exit 0
+			/usr/bin/snapraid "$@"
 			;;
 	esac
 else
