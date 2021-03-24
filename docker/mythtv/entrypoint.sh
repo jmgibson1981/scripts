@@ -101,6 +101,7 @@ Subsystem	sftp	/usr/lib/openssh/sftp-server" > /etc/ssh/sshd_config
 
 crontab_config_func() {
 	echo "00 02 * * 7	/root/optimize_mythdb.pl" > "$CRONTAB"
+	echo "*/1 * * * *	/usr/bin/pgrep mythbackend || [ -f /run/mythtv/mythbackend.pid ] && /usr/bin/rm /run/mythtv/mythbackend.pid && /usr/sbin/service mythtv-backend start" >> "$CRONTAB"
 	chown root:crontab "$CRONTAB" && chmod 600 "$CRONTAB"
 }
 
